@@ -1,0 +1,346 @@
+
+
+
+#table-newAuthor{
+
+//margin: 3% 3% 3% 6%;
+float: left;
+}
+
+}
+
+#txt-nickname{
+
+	margin-left: 2%;
+	margin-bottom: 1%;
+	
+
+}
+
+#txt-forename{
+
+	margin-left: 2%;
+	margin-bottom: 1%;
+	
+
+}
+
+#txt-surname{
+
+	margin-left: 2%;
+	margin-bottom: 1%;
+	
+
+}
+
+
+
+
+#img-import{
+
+	width: 100%;
+	
+}
+
+#div-authorsList{
+
+	
+}
+
+#button-newAuthor{
+
+	
+}
+
+#button-deleteAuthor{
+
+	
+}
+
+#table-authors{
+
+
+	text-align: center;
+	
+}
+#table-authors th{
+
+	color: #2e6e9e;
+	font-weight: bold;
+	font-family: Lucida Sans;
+	font-size: 13pt;
+	background: #dfeffc url('redmond/images/ui-bg_glass_85_dfeffc_1x400.png') 50% 50% repeat-x;
+	border-top-right-radius: 5px;
+	border-top-left-radius: 5px;
+	border-bottom: 1px solid #c5dbec;
+	width: 230pt;
+	border-top: 2px solid #c5dbec;
+	border-left: 2px solid #c5dbec;
+}
+
+#table-authors td{
+
+	border-bottom: 2px solid #c5dbec;
+
+}
+
+#table-authors caption{
+
+	color: #2e6e9e;
+	font-weight: bold;
+	font-family: Lucida Sans;
+	font-size: 13pt;
+	margin-bottom: 1.5%;
+
+}
+
+#table-authors tr{
+
+	
+	cursor: pointer;
+
+}
+
+#div-authorPublications{
+
+
+
+
+}
+
+hr{
+	border-color: rgb(197, 219, 236);
+}
+
+#table-authorPublications, #table-authorExcludedPublications, #table-orderTypePublications, #table-formatOutput{
+
+
+	text-align: center;
+	//height: 624.75px;// width: 1060px; //top: 119px;// left: 167px;
+	
+}
+
+
+#table-authorPublications th, #table-authorExcludedPublications th, #table-orderTypePublications th, #table-formatOutput th{
+
+	color: #2e6e9e;
+	font-weight: bold;
+	font-family: Lucida Sans;
+	font-size: 13pt;
+	background: #dfeffc url('redmond/images/ui-bg_glass_85_dfeffc_1x400.png') 50% 50% repeat-x;
+	border-top-right-radius: 5px;
+	border-top-left-radius: 5px;
+	border-bottom: 1px solid #c5dbec;
+	width: 230pt;
+	border-top: 2px solid #c5dbec;
+	border-left: 2px solid #c5dbec;
+}
+
+
+
+#table-authorPublications td, #table-authorExcludedPublications td, #table-orderTypePublications td, #table-formatOutput td{
+
+	border-bottom: 2px solid #c5dbec;
+	width: 1%;
+
+}
+
+
+#table-authorPublications caption, #table-authorExcludedPublications caption, #table-orderTypePublications caption, #table-formatOutput caption{
+
+	color: #2e6e9e;
+	font-weight: bold;
+	font-family: Lucida Sans;
+	font-size: 13pt;
+	margin-bottom: 1.5%;
+
+}
+
+#table-authorPublications tr, #table-authorExcludedPublications tr, #table-orderTypePublications tr, #table-formatOutput tr{
+
+	
+	cursor: pointer;
+
+}
+
+
+
+.button-resizeWindow{
+
+	width:21px;
+	height: 20px;
+	position: absolute;
+	right: -6%;
+}
+
+#select-fontFamily{
+
+	float: left;
+}
+
+
+#button-fontColor {
+
+    background-image: url('../images/icons/fontColorIcon.png');
+    width: 40px;
+	height: 30px;
+	background-repeat: no-repeat; 
+	float:left;
+	margin-left: 2%;
+
+}
+
+#div-fontButtons{
+
+	float: left;
+}
+
+#lbl-fontBold {
+
+    background-image: url('../images/icons/fontBoldIcon.png');
+    width: 40px;
+	height: 30px;
+	background-repeat: no-repeat; 
+
+}
+
+#lbl-fontItalic {
+
+    background-image: url('../images/icons/fontItalicIcon.png');
+    width: 40px;
+	height: 30px;
+	background-repeat: no-repeat; 
+
+}
+
+#lbl-fontUnderline {
+
+    background-image: url('../images/icons/fontUnderlineIcon.png');
+    width: 40px;
+	height: 30px;
+	background-repeat: no-repeat; 
+
+}
+
+
+
+#button-fontDescrease{
+
+    background-image: url('../images/icons/fontDecreaseIcon.png');
+    width: 40px;
+	height: 30px;
+	background-repeat: no-repeat; 
+	float: left;
+	margin-left: 8px;
+
+}
+
+#button-fontIncrease{
+
+    background-image: url('../images/icons/fontIncreaseIcon.png');
+    width: 40px;
+	height: 30px;
+	background-repeat: no-repeat; 
+	float: left;
+	
+
+}
+#input-fontSize{
+
+	width: 4%;
+	height: 30px;
+	float: left;
+	margin-left: 4px;
+	text-align: center;
+
+
+}
+
+#select-fontMeasure{
+
+	float:left;
+	width: 5%;
+	height: 30px;
+}
+
+#div-fieldOrder{
+
+	float: left;
+	margin-left: 2%;
+}
+
+
+#button-moveUp{
+
+    background-image: url('../images/icons/moveUp.png');
+    width: 40px;
+	height: 30px;
+	background-repeat: no-repeat; 
+	float: left;
+	
+
+}
+
+#button-moveDown{
+
+    background-image: url('../images/icons/moveDown.png');
+    width: 40px;
+	height: 30px;
+	background-repeat: no-repeat; 
+	float: left;
+	
+
+}
+
+
+#button-showHide{
+
+    //background-image: url('../images/icons/showHide.png');
+    width: 40px;
+	height: 30px;
+	background-repeat: no-repeat; 
+	margin-left: 1%;
+	
+	
+
+}
+
+#div-previewAuthorPublications label{
+
+	margin-right: 0.5%;
+}
+
+ .li-previewPublication{
+
+ 	text-align: justify;
+ 
+
+ }
+
+ #iframe-publications{
+
+ 	 width: 600px;
+	height: 400px;
+ }
+
+ #div-mendeley{
+
+ 	text-align: center;
+ }
+
+.ui-widget-overlay{
+	display: none;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
