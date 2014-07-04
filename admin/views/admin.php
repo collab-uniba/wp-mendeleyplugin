@@ -21,7 +21,7 @@
       <div class="section-text">
           <h3>Mendeley API Keys Management</h3>
       </div>
-      <form class="section-form" action="">
+      <form class="section-form" action="<?php echo $_SERVER['REQUEST_URI']; ?>">
           <label for="client-id">Client ID:</label><br/>
           <input type="text" id="client-id" name="client-id" size="60"/><br/>
           <label for="client-secret">Client Secret:</label><br/>
@@ -29,7 +29,7 @@
           <label for="access-token">Access Token:</label><br/>
           <input type="text" size="60" readonly/><br/>
           <p id="expire-at"></p><br/>
-          <input type="submit" value="Request/Authorize Access Token" name="oauth2-request-access-token"/>
+          <input type="submit" value="Request/Authorize Access Token" name="keys_settings" class="button-primary"/>
       </form>
   </section>
 
