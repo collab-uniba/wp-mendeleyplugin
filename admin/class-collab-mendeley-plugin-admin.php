@@ -19,6 +19,10 @@
  * @package CollabMendeleyPluginAdmin
  * @author  Davide Parisi <davideparisi@gmail.com>
  */
+require_once plugin_dir_path( __FILE__ ) . 'includes/vendor/autoload.php';
+define( 'AUTHORIZE_ENDPOINT', "https://api-oauth2.mendeley.com/oauth/authorize" );
+define( 'TOKEN_ENDPOINT', "https://api-oauth2.mendeley.com/oauth/token" );
+
 class CollabMendeleyPluginAdmin {
 
 	/**
@@ -39,6 +43,13 @@ class CollabMendeleyPluginAdmin {
 	 */
 	protected $plugin_screen_hook_suffix = null;
 
+    protected $options = null;
+
+    protected $client_config = null;
+
+    protected $api = null;
+
+
 	/**
 	 * Initialize the plugin by loading admin scripts & styles and adding a
 	 * settings page and menu.
@@ -58,6 +69,8 @@ class CollabMendeleyPluginAdmin {
 
 		$plugin = CollabMendeleyPlugin::get_instance();
 		$this->plugin_slug = $plugin->get_plugin_slug();
+        $this->options = $this->get_options();
+
 
 		// Load admin style sheet and JavaScript.
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_styles' ) );
@@ -76,7 +89,7 @@ class CollabMendeleyPluginAdmin {
 		 * Read more about actions and filters:
 		 * http://codex.wordpress.org/Plugin_API#Hooks.2C_Actions_and_Filters
 		 */
-		add_action( '@TODO', array( $this, 'action_method_name' ) );
+		add_action( 'admin_action_set_keys', array( $this, 'store_keys' ) );
 		add_filter( '@TODO', array( $this, 'filter_method_name' ) );
 
 	}
@@ -177,7 +190,10 @@ class CollabMendeleyPluginAdmin {
 	 * @since    1.0.0
 	 */
 	public function display_plugin_admin_page() {
-		include_once( 'views/admin.php' );
+        if ( $_SERVER['REQUEST_METHOD'] == 'GET' && isset( $_GET['code'] ) ) {
+            $this->get_access_token();
+        }
+        include_once( 'views/admin.php' );
 	}
 
 	/**
@@ -205,8 +221,13 @@ class CollabMendeleyPluginAdmin {
 	 *
 	 * @since    1.0.0
 	 */
-	public function action_method_name() {
-		// @TODO: Define your action hook callback here
+	public function store_keys() {
+		$client_id = $_POST['client-id'];
+        $client_secret = $_POST['client-secret'];
+        $this->options['client-id'] = $client_id;
+        $this->options['client-secret'] = $client_secret;
+        update_option( $this->plugin_slug, $this->options );
+        $this->send_authorization_request();
 	}
 
 	/**
@@ -221,5 +242,91 @@ class CollabMendeleyPluginAdmin {
 	public function filter_method_name() {
 		// @TODO: Define your filter hook callback here
 	}
+
+    /*------------------------------------------------------------------------------
+     *
+     * Private Functions
+     *
+     -----------------------------------------------------------------------------*/
+
+    /**
+     * @return null
+     */
+    private function get_options() {
+        // if $options is already present return $options
+        if ( isset( $this->options ) ) {
+            return $this->options;
+        }
+        // check if options are in the db and store them in $this->options
+        $tmp_options = get_option( $this->plugin_slug );
+        if ( isset( $tmp_options ) ) {
+            return $tmp_options;
+        } else {
+            // otherwise initialize to an empty array
+            $this->options = array();
+            add_option( $this->plugin_slug, $this->options );
+            return $this->options;
+        }
+
+    }
+
+    private function send_authorization_request() {
+        $this->get_config();
+        $this->api = new \fkooman\OAuth\Client\Api('mendeley', $this->client_config, new \fkooman\OAuth\Client\SessionStorage(), new \Guzzle\Http\Client());
+        $context = new \fkooman\OAuth\Client\Context( (String) get_current_user_id(), array( 'all' ) );
+        $access_token = $this->api->getAccessToken( $context );
+        if ( false === $access_token ) {
+            wp_redirect( $this->api->getAuthorizeUri( $context ) );
+            exit();
+        }
+        $this->options['access-token'] = $access_token;
+        $this->update_options( $this->options );
+        $api_url = 'https://mix.mendeley.com/documents?type=own';
+        try {
+            $client = new \Guzzle\Http\Client();
+            $bearer_auth = new \fkooman\Guzzle\Plugin\BearerAuth\BearerAuth($access_token->getAccessToken());
+            $client->addSubscriber($bearer_auth);
+            $response = $client->get($api_url)->send();
+
+            header("Content-Type: application/json");
+            echo $response->getBody();
+        } catch (\fkooman\Guzzle\Plugin\BearerAuth\Exception\BearerErrorResponseException $e) {
+            if ("invalid_token" === $e->getBearerReason()) {
+                // the token we used was invalid, possibly revoked, we throw it away
+                $this->api->deleteAccessToken($context);
+                $this->api->deleteRefreshToken($context);
+
+                /* no valid access token available, go to authorization server */
+                header("HTTP/1.1 302 Found");
+                header("Location: " . $this->api->getAuthorizeUri($context));
+                exit;
+            }
+            throw $e;
+        }
+    }
+
+    private function get_access_token() {
+        $this->get_config();
+        $cb = new \fkooman\OAuth\Client\Callback('mendeley', $this->client_config, new \fkooman\OAuth\Client\SessionStorage(), new \Guzzle\Http\Client());
+        $cb->handleCallback($_GET);
+        // wp_redirect($this->client_config->getRedirectUri() );
+        // exit();
+    }
+
+    private function get_config() {
+        $this->client_config = new \fkooman\OAuth\Client\ClientConfig(
+            array(
+                'authorize_endpoint'    => AUTHORIZE_ENDPOINT,
+                'token_endpoint'        => TOKEN_ENDPOINT,
+                'client_id'             => $this->options['client-id'],
+                'client_secret'         => $this->options['client-secret'],
+                'redirect_uri'          => admin_url('options-general.php?page=' . $this->plugin_slug)
+            )
+        );
+    }
+
+    private function update_options( $options ) {
+        update_option( $this->plugin_slug, $options );
+    }
 
 }
