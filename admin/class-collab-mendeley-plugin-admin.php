@@ -20,6 +20,9 @@
  * @author  Davide Parisi <davideparisi@gmail.com>
  */
 require_once plugin_dir_path( __FILE__ ) . 'includes/vendor/autoload.php';
+if ( ! class_exists( "citeproc" ) ) {
+    require_once plugin_dir_path( __FILE__ ) . 'includes/vendor/CiteProc.php';
+}
 define( 'AUTHORIZE_ENDPOINT', "https://api-oauth2.mendeley.com/oauth/authorize" );
 define( 'TOKEN_ENDPOINT', "https://api-oauth2.mendeley.com/oauth/token" );
 
@@ -287,9 +290,18 @@ class CollabMendeleyPluginAdmin {
             $bearer_auth = new \fkooman\Guzzle\Plugin\BearerAuth\BearerAuth($access_token->getAccessToken());
             $client->addSubscriber($bearer_auth);
             $response = $client->get($api_url)->send();
+            $data = $response->json();
+            $data_json = $response->json('string');
 
-            header("Content-Type: application/json");
-            echo $response->getBody();
+
+            $csl_path = plugin_dir_path( __FILE__ ) . 'assets/chicago-fullnote-bibliography.csl';
+            $csl = file_get_contents( $csl_path );
+            $citeproc = new citeproc( $csl, 'it' );
+            $output = '';
+            foreach ( $data as $d ) {
+                $output .= $citeproc->render( $d, 'bibliography' );
+            }
+            print $output;
         } catch (\fkooman\Guzzle\Plugin\BearerAuth\Exception\BearerErrorResponseException $e) {
             if ("invalid_token" === $e->getBearerReason()) {
                 // the token we used was invalid, possibly revoked, we throw it away
@@ -328,5 +340,6 @@ class CollabMendeleyPluginAdmin {
     private function update_options( $options ) {
         update_option( $this->plugin_slug, $options );
     }
+
 
 }
