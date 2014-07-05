@@ -19,9 +19,8 @@
  * @package CollabMendeleyPluginAdmin
  * @author  Davide Parisi <davideparisi@gmail.com>
  */
-require_once plugin_dir_path( __FILE__ ) . 'includes/vendor/autoload.php';
-if ( ! class_exists( "citeproc" ) ) {
-    require_once plugin_dir_path( __FILE__ ) . 'includes/vendor/CiteProc.php';
+if ( ! class_exists( "Client" ) ) {
+    require_once plugin_dir_path( __FILE__ ) . 'includes/vendor/autoload.php';
 }
 define( 'AUTHORIZE_ENDPOINT', "https://api-oauth2.mendeley.com/oauth/authorize" );
 define( 'TOKEN_ENDPOINT', "https://api-oauth2.mendeley.com/oauth/token" );
@@ -48,9 +47,7 @@ class CollabMendeleyPluginAdmin {
 
     protected $options = null;
 
-    protected $client_config = null;
-
-    protected $api = null;
+    protected $client = null;
 
 
 	/**
@@ -229,7 +226,7 @@ class CollabMendeleyPluginAdmin {
         $client_secret = $_POST['client-secret'];
         $this->options['client-id'] = $client_id;
         $this->options['client-secret'] = $client_secret;
-        update_option( $this->plugin_slug, $this->options );
+        $this->update_options( $this->options );
         $this->send_authorization_request();
 	}
 
@@ -253,6 +250,8 @@ class CollabMendeleyPluginAdmin {
      -----------------------------------------------------------------------------*/
 
     /**
+     * Update options array with db data (if present)
+     *
      * @return null
      */
     private function get_options() {
@@ -274,71 +273,36 @@ class CollabMendeleyPluginAdmin {
     }
 
     private function send_authorization_request() {
-        $this->get_config();
-        $this->api = new \fkooman\OAuth\Client\Api('mendeley', $this->client_config, new \fkooman\OAuth\Client\SessionStorage(), new \Guzzle\Http\Client());
-        $context = new \fkooman\OAuth\Client\Context( (String) get_current_user_id(), array( 'all' ) );
-        $access_token = $this->api->getAccessToken( $context );
-        if ( false === $access_token ) {
-            wp_redirect( $this->api->getAuthorizeUri( $context ) );
-            exit();
-        }
-        $this->options['access-token'] = $access_token;
-        $this->update_options( $this->options );
-        $api_url = 'https://mix.mendeley.com/documents?type=own';
-        try {
-            $client = new \Guzzle\Http\Client();
-            $bearer_auth = new \fkooman\Guzzle\Plugin\BearerAuth\BearerAuth($access_token->getAccessToken());
-            $client->addSubscriber($bearer_auth);
-            $response = $client->get($api_url)->send();
-            $data = $response->json();
-            $data_json = $response->json('string');
-
-
-            $csl_path = plugin_dir_path( __FILE__ ) . 'assets/chicago-fullnote-bibliography.csl';
-            $csl = file_get_contents( $csl_path );
-            $citeproc = new citeproc( $csl, 'it' );
-            $output = '';
-            foreach ( $data as $d ) {
-                $output .= $citeproc->render( $d, 'bibliography' );
-            }
-            print $output;
-        } catch (\fkooman\Guzzle\Plugin\BearerAuth\Exception\BearerErrorResponseException $e) {
-            if ("invalid_token" === $e->getBearerReason()) {
-                // the token we used was invalid, possibly revoked, we throw it away
-                $this->api->deleteAccessToken($context);
-                $this->api->deleteRefreshToken($context);
-
-                /* no valid access token available, go to authorization server */
-                header("HTTP/1.1 302 Found");
-                header("Location: " . $this->api->getAuthorizeUri($context));
-                exit;
-            }
-            throw $e;
-        }
+        $this->set_client();
+        $auth_url = $this->client->getAuthenticationUrl( AUTHORIZE_ENDPOINT, admin_url('options-general.php?page=' . $this->plugin_slug ) );
+        $auth_url .= '&scope=all';
+        wp_redirect( $auth_url );
+        exit();
     }
+
+
 
     private function get_access_token() {
-        $this->get_config();
-        $cb = new \fkooman\OAuth\Client\Callback('mendeley', $this->client_config, new \fkooman\OAuth\Client\SessionStorage(), new \Guzzle\Http\Client());
-        $cb->handleCallback($_GET);
-        // wp_redirect($this->client_config->getRedirectUri() );
-        // exit();
+        $this->set_client();
+        $params = array('code' => $_GET['code'], 'redirect_uri' => admin_url('options-general.php?page=' . $this->plugin_slug ) );
+        $response = $this->client->getAccessToken(TOKEN_ENDPOINT, 'authorization_code', $params);
+        $access_token = $response['result']['access_token'];
+        $this->client->setAccessToken( $access_token );
+        $response = $this->client->fetch('https://api-oauth2.mendeley.com/oapi/library&type=own');
+        var_dump($response, $response['result']);
     }
 
-    private function get_config() {
-        $this->client_config = new \fkooman\OAuth\Client\ClientConfig(
-            array(
-                'authorize_endpoint'    => AUTHORIZE_ENDPOINT,
-                'token_endpoint'        => TOKEN_ENDPOINT,
-                'client_id'             => $this->options['client-id'],
-                'client_secret'         => $this->options['client-secret'],
-                'redirect_uri'          => admin_url('options-general.php?page=' . $this->plugin_slug)
-            )
-        );
-    }
-
+    /**
+     * Simple wrapper for the update_option wordpress function
+     *
+     * @param $options
+     */
     private function update_options( $options ) {
         update_option( $this->plugin_slug, $options );
+    }
+
+    private function set_client() {
+        $this->client = new \OAuth2\Client( $this->options['client-id'], $this->options['client-secret'] );
     }
 
 
