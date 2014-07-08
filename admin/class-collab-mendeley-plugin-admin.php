@@ -25,6 +25,12 @@ if ( ! class_exists( "Client" ) ) {
 define( 'AUTHORIZE_ENDPOINT', "https://api-oauth2.mendeley.com/oauth/authorize" );
 define( 'TOKEN_ENDPOINT', "https://api-oauth2.mendeley.com/oauth/token" );
 
+date_default_timezone_set( get_option( 'timezone_string' ) != '' ? get_option( 'timezone_string' ) : 'Europe/Rome' );
+
+if (!class_exists("citeproc")) {
+    include_once('includes/CiteProc.php');
+}
+
 class CollabMendeleyPluginAdmin {
 
 	/**
@@ -49,6 +55,8 @@ class CollabMendeleyPluginAdmin {
 
     protected $client = null;
 
+	protected $callback_url = '';
+
 
 	/**
 	 * Initialize the plugin by loading admin scripts & styles and adding a
@@ -70,6 +78,7 @@ class CollabMendeleyPluginAdmin {
 		$plugin = CollabMendeleyPlugin::get_instance();
 		$this->plugin_slug = $plugin->get_plugin_slug();
         $this->options = $this->get_options();
+		$this->callback_url = admin_url('options-general.php?page=' . $this->plugin_slug );
 
 
 		// Load admin style sheet and JavaScript.
@@ -190,6 +199,7 @@ class CollabMendeleyPluginAdmin {
 	 * @since    1.0.0
 	 */
 	public function display_plugin_admin_page() {
+		// @TODO: check if auth code is present already
         if ( $_SERVER['REQUEST_METHOD'] == 'GET' && isset( $_GET['code'] ) ) {
             $this->get_access_token();
         }
@@ -222,13 +232,15 @@ class CollabMendeleyPluginAdmin {
 	 * @since    1.0.0
 	 */
 	public function store_keys() {
-		$client_id = $_POST['client-id'];
-        $client_secret = $_POST['client-secret'];
-        $this->options['client-id'] = $client_id;
-        $this->options['client-secret'] = $client_secret;
-        $this->update_options( $this->options );
+        if ( ! isset($this->options['client_id']) && ! isset($this->options['client_secret'])) {
+            $client_id = $_POST['client-id'];
+            $client_secret = $_POST['client-secret'];
+            $this->options['client_id'] = $client_id;
+            $this->options['client_secret'] = $client_secret;
+            $this->update_options( $this->options );
+        }
         $this->send_authorization_request();
-	}
+    }
 
 	/**
 	 * NOTE:     Filters are points of execution in which WordPress modifies data
@@ -273,8 +285,10 @@ class CollabMendeleyPluginAdmin {
     }
 
     private function send_authorization_request() {
-        $this->set_client();
-        $auth_url = $this->client->getAuthenticationUrl( AUTHORIZE_ENDPOINT, admin_url('options-general.php?page=' . $this->plugin_slug ) );
+	    if ( ! isset( $this->client ) ) {
+		    $this->set_client();
+	    }
+        $auth_url = $this->client->getAuthenticationUrl( AUTHORIZE_ENDPOINT, $this->callback_url );
         $auth_url .= '&scope=all';
         wp_redirect( $auth_url );
         exit();
@@ -283,13 +297,33 @@ class CollabMendeleyPluginAdmin {
 
 
     private function get_access_token() {
-        $this->set_client();
-        $params = array('code' => $_GET['code'], 'redirect_uri' => admin_url('options-general.php?page=' . $this->plugin_slug ) );
-        $response = $this->client->getAccessToken(TOKEN_ENDPOINT, 'authorization_code', $params);
-        $access_token = $response['result']['access_token'];
-        $this->client->setAccessToken( $access_token );
-        $response = $this->client->fetch('https://api-oauth2.mendeley.com/oapi/library&type=own');
-        var_dump($response, $response['result']);
+
+	    if ( ! isset( $this->client ) ) {
+		    $this->set_client();
+	    }
+	    if ( ! isset( $this->options['access_token'] ) ) {
+            $this->send_access_token_request();
+	    }
+        if ( time() > $this->options['expire_time'] ) {
+            $this->refresh_access_token();
+        }
+        $this->client->setAccessToken( $this->options['access_token'] );
+        $response = $this->client->fetch('https://api-oauth2.mendeley.com/oapi/library/documents/authored/');
+
+	    if ( $response['code'] != '200' ) {
+            var_dump($response, $response['result']);
+        }
+
+        $data = $response['result'];
+        $document_ids = $data['document_ids'];
+        $documents = array();
+        foreach ( $document_ids as $doc ) {
+            $response = $this->client->fetch('            https://api-oauth2.mendeley.com/oapi/library/documents/' . $doc . '/');
+            $documents[$doc] = $response;
+        }
+        add_option($this->plugin_slug . '_documents', $documents);
+        // $json = json_encode($data);
+        // @TODO: do something with the response
     }
 
     /**
@@ -298,12 +332,36 @@ class CollabMendeleyPluginAdmin {
      * @param $options
      */
     private function update_options( $options ) {
+	    // #TODO: check if db options are stale and then update
         update_option( $this->plugin_slug, $options );
     }
 
     private function set_client() {
-        $this->client = new \OAuth2\Client( $this->options['client-id'], $this->options['client-secret'] );
+        $this->client = new \OAuth2\Client( $this->options['client_id'], $this->options['client_secret'] );
     }
 
+	private function store_access_token( $result ) {
+		foreach ( $result as $k => $v ) {
+			$this->options[ $k ] = $v;
+		}
+		$expire_time = time() + $this->options['expires_in'];
+        $this->options['expire_time'] = $expire_time;
+
+		$this->update_options( $this->options ); // save access token to db
+	}
+
+    private function send_access_token_request() {
+        $code = $_GET['code']; // get the auth code from $_GET array
+        $params = array('code' => $code, 'redirect_uri' => $this->callback_url ); // set request parameters
+        $response = $this->client->getAccessToken(TOKEN_ENDPOINT, 'authorization_code', $params); // get the access token
+        $this->store_access_token( $response['result'] );
+    }
+
+    private function  refresh_access_token() {
+        $code = $_GET['code']; // get the auth code from $_GET array
+        $params = array('code' => $code, 'redirect_uri' => $this->callback_url, 'refresh_token' => $this->options['refresh_token'] ); // set request parameters
+        $response = $this->client->getAccessToken(TOKEN_ENDPOINT, 'refresh_token', $params); // get the access token
+        $this->store_access_token( $response['result'] );
+    }
 
 }
