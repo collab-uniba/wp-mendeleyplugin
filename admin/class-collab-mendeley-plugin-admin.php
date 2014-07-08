@@ -20,7 +20,7 @@
  * @author  Davide Parisi <davideparisi@gmail.com>
  */
 if ( ! class_exists( "Client" ) ) {
-    require_once plugin_dir_path( __FILE__ ) . 'includes/vendor/autoload.php';
+    require_once plugin_dir_path( __FILE__ ) . "includes/vendor/autoload.php";
 }
 define( 'AUTHORIZE_ENDPOINT', "https://api-oauth2.mendeley.com/oauth/authorize" );
 define( 'TOKEN_ENDPOINT', "https://api-oauth2.mendeley.com/oauth/token" );
@@ -308,20 +308,55 @@ class CollabMendeleyPluginAdmin {
             $this->refresh_access_token();
         }
         $this->client->setAccessToken( $this->options['access_token'] );
-        $response = $this->client->fetch('https://api-oauth2.mendeley.com/oapi/library/documents/authored/');
+        $authored = $this->client->fetch('https://api-oauth2.mendeley.com/oapi/library/documents/authored/');
+        /*
+        $folders = $this->client->fetch('https://mix.mendeley.com/folders');
+        $f = $folders['result'];
+        $dib = null;
+        foreach ($f as $ff) {
+            if ($ff['name'] == 'dib') {
+                $dib = $this->client->fetch('https://mix.mendeley.com/folders/'. $ff['id'] .'/documents');
+            }
+        }
+        */
 
-	    if ( $response['code'] != '200' ) {
-            var_dump($response, $response['result']);
+	    if ( $authored['code'] != '200' ) {
+            var_dump($authored, $authored['result']);
         }
 
-        $data = $response['result'];
-        $document_ids = $data['document_ids'];
+        //$publication_detail = $authored['result'];
+        $publication_detail = $authored['result'];
+
+        $document_ids = $publication_detail['document_ids'];
         $documents = array();
         foreach ( $document_ids as $doc ) {
-            $response = $this->client->fetch('            https://api-oauth2.mendeley.com/oapi/library/documents/' . $doc . '/');
-            $documents[$doc] = $response;
+            $tempurl = 'https://api-oauth2.mendeley.com/oapi/library/documents/' . $doc . '/';
+            $response = $this->client->fetch( $tempurl );
+            $pre = $this->pre_process($response[result]);
+            $documents[$doc] = $pre;
         }
+
         add_option($this->plugin_slug . '_documents', $documents);
+
+        $csl_path = plugin_dir_url( __FILE__ ) . 'assets/csl/modern-language-association.csl';
+        $csl = file_get_contents( $csl_path );
+        $cp = new citeproc( $csl, 'it' );
+        //$doc = $this->pre_process( $documents );
+        $render = '';
+        foreach ($documents as $doc ) {
+            $render .= $cp->render($doc, 'bibliograpy');
+        }
+
+        if ( ! isset( $render ) || ('' === $render ) ) {
+            echo '<div class="error">
+                        <p>WTF Dude?</p>
+                        <p><?php' . var_dump($render) . '?></p>
+                    </div>';
+        } else {
+            var_dump($render);
+            echo $render;
+        }
+
         // $json = json_encode($data);
         // @TODO: do something with the response
     }
@@ -363,5 +398,83 @@ class CollabMendeleyPluginAdmin {
         $response = $this->client->getAccessToken(TOKEN_ENDPOINT, 'refresh_token', $params); // get the access token
         $this->store_access_token( $response['result'] );
     }
+
+    private function mendeleyNames2CiteProcNames($names)
+    {
+        if (!$names) return $names;
+        $tmp_names = array();
+        foreach ($names as $rank => $name) {
+            $tmp_names[$rank]['given'] = $name['forename'];
+            $tmp_names[$rank]['family'] = $name['surname'];
+        }
+        return $tmp_names;
+    }
+
+    private function mendeleyType2CiteProcType($type)
+    {
+        if (!isset($this->type_map)) {
+            $this->type_map = array(
+                'Book' => 'book',
+                'Book Section' => 'chapter',
+                'Journal Article' => 'article-journal',
+                'Magazine Article' => 'article-magazine',
+                'Newspaper Article' => 'article-newspaper',
+                'Conference Proceedings' => 'paper-conference',
+                'Report' => 'report',
+                'Thesis' => 'thesis',
+                'Case' => 'legal_case',
+                'Encyclopedia Article' => 'entry-encyclopedia',
+                'Web Page' => 'webpage',
+                'Working Paper' => 'report',
+                'Generic' => 'chapter',
+            );
+        }
+        return $this->type_map[$type];
+    }
+
+    private function pre_process( $doc ) {
+        // stdClass for showing document
+        $docdata = new stdClass;
+        $docdata->type = $this->mendeleyType2CiteProcType($doc['type']);
+        $docdata->author = $this->mendeleyNames2CiteProcNames($doc['authors']);
+        $docdata->editor = $this->mendeleyNames2CiteProcNames($doc['editors']);
+        $docdata->issued = (object)array('date-parts' => array(array($doc['year'])));
+        $docdata->title = $doc['title'];
+        if (isset($doc['published_in'])) {
+            $docdata->container_title = $doc['published_in'];
+        }
+        if (isset($doc['publication_outlet'])) {
+            $docdata->container_title = $doc['publication_outlet'];
+        }
+        if (isset($doc['journal'])) {
+            $docdata->container_title = $doc['journal'];
+        }
+        if (isset($doc['volume'])) {
+            $docdata->volume = $doc['volume'];
+        }
+        if (isset($doc['issue'])) {
+            $docdata->issue = $doc['issue'];
+        }
+        if (isset($doc['pages'])) {
+            $docdata->page = $doc['pages'];
+        }
+        if (isset($doc['publisher'])) {
+            $docdata->publisher = $doc['publisher'];
+        }
+        if (isset($doc['city'])) {
+            $docdata->publisher_place = $doc['city'];
+        }
+        if (isset($doc['url'])) {
+            $docdata->URL = $doc['url'];
+        }
+        if (isset($doc['doi'])) {
+            $docdata->DOI = $doc['doi'];
+        }
+        if (isset($doc['isbn'])) {
+            $docdata->ISBN = $doc['isbn'];
+        }
+        return $docdata;
+    }
+
 
 }
