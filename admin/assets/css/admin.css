@@ -1,7 +1,18 @@
-.updated b {
-    color: darkgreen;
+.updated {
+    background-color: darkgreen;
+    color: white;
+    padding: 2px;
 }
 
-.expired b {
-    color: red;
+.expired {
+    background-color: red;
+    color: white;
+    padding: 2px;
+}
+
+.debug input {
+    background-color: crimson;
+    color: white;
+    font-weight: bold;
+    font-style: italic;
 }
