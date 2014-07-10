@@ -20,15 +20,14 @@
  * @author  Davide Parisi <davideparisi@gmail.com>
  */
 if ( ! class_exists( "Client" ) ) {
-    require_once plugin_dir_path( __FILE__ ) . "includes/vendor/autoload.php";
+	require_once plugin_dir_path( __FILE__ ) . "includes/vendor/autoload.php";
 }
-define( 'AUTHORIZE_ENDPOINT', "https://api-oauth2.mendeley.com/oauth/authorize" );
-define( 'TOKEN_ENDPOINT', "https://api-oauth2.mendeley.com/oauth/token" );
+
 
 date_default_timezone_set( get_option( 'timezone_string' ) != '' ? get_option( 'timezone_string' ) : 'Europe/Rome' );
 
-if (!class_exists("citeproc")) {
-    include_once('includes/CiteProc.php');
+if ( ! class_exists( "citeproc" ) ) {
+	include_once( 'includes/CiteProc.php' );
 }
 
 class CollabMendeleyPluginAdmin {
@@ -51,9 +50,9 @@ class CollabMendeleyPluginAdmin {
 	 */
 	protected $plugin_screen_hook_suffix = null;
 
-    protected $options = null;
+	protected $options = null;
 
-    protected $client = null;
+	protected $client = null;
 
 	protected $callback_url = '';
 
@@ -75,10 +74,10 @@ class CollabMendeleyPluginAdmin {
 			return;
 		} */
 
-		$plugin = CollabMendeleyPlugin::get_instance();
-		$this->plugin_slug = $plugin->get_plugin_slug();
-        $this->options = $this->get_options();
-		$this->callback_url = admin_url('options-general.php?page=' . $this->plugin_slug );
+		$plugin             = CollabMendeleyPlugin::get_instance();
+		$this->plugin_slug  = $plugin->get_plugin_slug();
+		$this->options      = $this->get_options();
+		$this->callback_url = admin_url( 'options-general.php?page=' . $this->plugin_slug );
 
 
 		// Load admin style sheet and JavaScript.
@@ -100,6 +99,8 @@ class CollabMendeleyPluginAdmin {
 		 */
 		add_action( 'admin_action_set_keys', array( $this, 'store_keys' ) );
 		add_filter( '@TODO', array( $this, 'filter_method_name' ) );
+
+		add_action( 'admin_init', array( $this, 'collab_mendeley_initialize_options' ) );
 
 	}
 
@@ -144,7 +145,7 @@ class CollabMendeleyPluginAdmin {
 
 		$screen = get_current_screen();
 		if ( $this->plugin_screen_hook_suffix == $screen->id ) {
-			wp_enqueue_style( $this->plugin_slug .'-admin-styles', plugins_url( 'assets/css/admin.css', __FILE__ ), array(), CollabMendeleyPlugin::VERSION );
+			wp_enqueue_style( $this->plugin_slug . '-admin-styles', plugins_url( 'assets/css/admin.css', __FILE__ ), array(), CollabMendeleyPlugin::VERSION );
 		}
 
 	}
@@ -167,6 +168,72 @@ class CollabMendeleyPluginAdmin {
 			wp_enqueue_script( $this->plugin_slug . '-admin-script', plugins_url( 'assets/js/admin.js', __FILE__ ), array( 'jquery' ), CollabMendeleyPlugin::VERSION );
 		}
 
+	}
+
+	public function collab_mendeley_initialize_options() {
+
+		// check if multisite environment
+		if ( function_exists( 'is_multisite' ) && is_multisite() ) {
+			if (false === get_site_option($this->plugin_slug)){
+				add_site_option($this->plugin_slug, array('client_id' =>'', 'client_secret' => '' ));
+			}
+		} else {
+			if (false === get_option($this->plugin_slug)){
+				add_option($this->plugin_slug, array('client_id' =>'', 'client_secret' => '' ));
+			}
+		}
+
+		add_settings_section(
+			'collab_mendeley_settings_section',
+			'Collab Mendeley Setting',
+			array($this,'collab_mendeley_options_callback'),
+			$this->plugin_slug
+		);
+
+		add_settings_field(
+			'client_id',
+			'Client ID',
+			array( $this, 'client_id_input_callback' ),
+			$this->plugin_slug,
+			'collab_mendeley_settings_section',
+			array( 'Insert the client ID' )
+		);
+
+		add_settings_field(
+			'client_secret',
+			'Client Secret',
+			array( $this, 'client_secret_input_callback' ),
+			$this->plugin_slug,
+			'collab_mendeley_settings_section',
+			array( 'Insert the client secret' )
+		);
+
+		register_setting( $this->plugin_slug, $this->plugin_slug );
+	}
+
+	public function collab_mendeley_options_callback() {
+		echo '<p class="description">Demo</p>';
+	}
+
+	public function client_id_input_callback( $args ) {
+		if(function_exists('is_multisite') && is_multisite()){
+			$options = get_site_option($this->plugin_slug);
+		}else{
+			$options = get_option( $this->plugin_slug );
+		}
+		$html    = '<input type="text" id="client_id" name="' . $this->plugin_slug . '[client_id]" value="' . $options['client_id'] . '"/>';
+		echo $html;
+	}
+
+	public function client_secret_input_callback( $args ) {
+		if(function_exists('is_multisite') && is_multisite()){
+			$options = get_site_option($this->plugin_slug);
+		}else{
+			$options = get_option( $this->plugin_slug );
+		}
+		$options = get_option( $this->plugin_slug );
+		$html    = '<input type="text" id="client_secret" name="' . $this->plugin_slug . '[client_secret]" value="' . $options['client_secret'] . '"/>';
+		echo $html;
 	}
 
 	/**
@@ -199,11 +266,7 @@ class CollabMendeleyPluginAdmin {
 	 * @since    1.0.0
 	 */
 	public function display_plugin_admin_page() {
-		// @TODO: check if auth code is present already
-        if ( $_SERVER['REQUEST_METHOD'] == 'GET' && isset( $_GET['code'] ) ) {
-            $this->get_access_token();
-        }
-        include_once( 'views/admin.php' );
+		include_once( 'views/admin.php' );
 	}
 
 	/**
@@ -222,25 +285,6 @@ class CollabMendeleyPluginAdmin {
 
 	}
 
-	/**
-	 * NOTE:     Actions are points in the execution of a page or process
-	 *           lifecycle that WordPress fires.
-	 *
-	 *           Actions:    http://codex.wordpress.org/Plugin_API#Actions
-	 *           Reference:  http://codex.wordpress.org/Plugin_API/Action_Reference
-	 *
-	 * @since    1.0.0
-	 */
-	public function store_keys() {
-        if ( ! isset($this->options['client_id']) && ! isset($this->options['client_secret'])) {
-            $client_id = $_POST['client-id'];
-            $client_secret = $_POST['client-secret'];
-            $this->options['client_id'] = $client_id;
-            $this->options['client_secret'] = $client_secret;
-            $this->update_options( $this->options );
-        }
-        $this->send_authorization_request();
-    }
 
 	/**
 	 * NOTE:     Filters are points of execution in which WordPress modifies data
@@ -255,226 +299,138 @@ class CollabMendeleyPluginAdmin {
 		// @TODO: Define your filter hook callback here
 	}
 
-    /*------------------------------------------------------------------------------
-     *
-     * Private Functions
-     *
-     -----------------------------------------------------------------------------*/
+	/*------------------------------------------------------------------------------
+	 *
+	 * Private Functions
+	 *
+	 -----------------------------------------------------------------------------*/
 
-    /**
-     * Update options array with db data (if present)
-     *
-     * @return null
-     */
-    private function get_options() {
-        // if $options is already present return $options
-        if ( isset( $this->options ) ) {
-            return $this->options;
-        }
-        // check if options are in the db and store them in $this->options
-        $tmp_options = get_option( $this->plugin_slug );
-        if ( isset( $tmp_options ) ) {
-            return $tmp_options;
-        } else {
-            // otherwise initialize to an empty array
-            $this->options = array();
-            add_option( $this->plugin_slug, $this->options );
-            return $this->options;
-        }
-
-    }
-
-    private function send_authorization_request() {
-	    if ( ! isset( $this->client ) ) {
-		    $this->set_client();
-	    }
-        $auth_url = $this->client->getAuthenticationUrl( AUTHORIZE_ENDPOINT, $this->callback_url );
-        $auth_url .= '&scope=all';
-        wp_redirect( $auth_url );
-        exit();
-    }
-
-
-
-    private function get_access_token() {
-
-	    if ( ! isset( $this->client ) ) {
-		    $this->set_client();
-	    }
-	    if ( ! isset( $this->options['access_token'] ) ) {
-            $this->send_access_token_request();
-	    }
-        if ( time() > $this->options['expire_time'] ) {
-            $this->refresh_access_token();
-        }
-        $this->client->setAccessToken( $this->options['access_token'] );
-        $authored = $this->client->fetch('https://api-oauth2.mendeley.com/oapi/library/documents/authored/');
-        /*
-        $folders = $this->client->fetch('https://mix.mendeley.com/folders');
-        $f = $folders['result'];
-        $dib = null;
-        foreach ($f as $ff) {
-            if ($ff['name'] == 'dib') {
-                $dib = $this->client->fetch('https://mix.mendeley.com/folders/'. $ff['id'] .'/documents');
-            }
-        }
-        */
-
-	    if ( $authored['code'] != '200' ) {
-            var_dump($authored, $authored['result']);
-        }
-
-        //$publication_detail = $authored['result'];
-        $publication_detail = $authored['result'];
-
-        $document_ids = $publication_detail['document_ids'];
-        $documents = array();
-        foreach ( $document_ids as $doc ) {
-            $tempurl = 'https://api-oauth2.mendeley.com/oapi/library/documents/' . $doc . '/';
-            $response = $this->client->fetch( $tempurl );
-            $pre = $this->pre_process($response[result]);
-            $documents[$doc] = $pre;
-        }
-
-        add_option($this->plugin_slug . '_documents', $documents);
-
-        $csl_path = plugin_dir_url( __FILE__ ) . 'assets/csl/modern-language-association.csl';
-        $csl = file_get_contents( $csl_path );
-        $cp = new citeproc( $csl, 'it' );
-        //$doc = $this->pre_process( $documents );
-        $render = '';
-        foreach ($documents as $doc ) {
-            $render .= $cp->render($doc, 'bibliograpy');
-        }
-
-        if ( ! isset( $render ) || ('' === $render ) ) {
-            echo '<div class="error">
-                        <p>WTF Dude?</p>
-                        <p><?php' . var_dump($render) . '?></p>
-                    </div>';
-        } else {
-            var_dump($render);
-            echo $render;
-        }
-
-        // $json = json_encode($data);
-        // @TODO: do something with the response
-    }
-
-    /**
-     * Simple wrapper for the update_option wordpress function
-     *
-     * @param $options
-     */
-    private function update_options( $options ) {
-	    // #TODO: check if db options are stale and then update
-        update_option( $this->plugin_slug, $options );
-    }
-
-    private function set_client() {
-        $this->client = new \OAuth2\Client( $this->options['client_id'], $this->options['client_secret'] );
-    }
-
-	private function store_access_token( $result ) {
-		foreach ( $result as $k => $v ) {
-			$this->options[ $k ] = $v;
+	/**
+	 * Update options array with db data (if present)
+	 *
+	 * @return null
+	 */
+	private function get_options() {
+		// if $options is already present return $options
+		if ( isset( $this->options ) ) {
+			return $this->options;
 		}
-		$expire_time = time() + $this->options['expires_in'];
-        $this->options['expire_time'] = $expire_time;
+		// check if options are in the db and store them in $this->options
+		$tmp_options = get_option( $this->plugin_slug );
+		if ( isset( $tmp_options ) ) {
+			return $tmp_options;
+		} else {
+			// otherwise initialize to an empty array
+			$this->options = array();
+			add_option( $this->plugin_slug, $this->options );
 
-		$this->update_options( $this->options ); // save access token to db
+			return $this->options;
+		}
+
 	}
 
-    private function send_access_token_request() {
-        $code = $_GET['code']; // get the auth code from $_GET array
-        $params = array('code' => $code, 'redirect_uri' => $this->callback_url ); // set request parameters
-        $response = $this->client->getAccessToken(TOKEN_ENDPOINT, 'authorization_code', $params); // get the access token
-        $this->store_access_token( $response['result'] );
-    }
+	/**
+	 * Simple wrapper for the update_option wordpress function
+	 *
+	 * @param $options
+	 */
+	private function update_options( $options ) {
+		// #TODO: check if db options are stale and then update
+		update_option( $this->plugin_slug, $options );
+	}
 
-    private function  refresh_access_token() {
-        $code = $_GET['code']; // get the auth code from $_GET array
-        $params = array('code' => $code, 'redirect_uri' => $this->callback_url, 'refresh_token' => $this->options['refresh_token'] ); // set request parameters
-        $response = $this->client->getAccessToken(TOKEN_ENDPOINT, 'refresh_token', $params); // get the access token
-        $this->store_access_token( $response['result'] );
-    }
 
-    private function mendeleyNames2CiteProcNames($names)
-    {
-        if (!$names) return $names;
-        $tmp_names = array();
-        foreach ($names as $rank => $name) {
-            $tmp_names[$rank]['given'] = $name['forename'];
-            $tmp_names[$rank]['family'] = $name['surname'];
-        }
-        return $tmp_names;
-    }
+	private function mendeleyNames2CiteProcNames( $names ) {
+		if ( ! $names ) {
+			return $names;
+		}
+		$tmp_names = array();
+		foreach ( $names as $rank => $name ) {
+			$tmp_names[ $rank ]['given']  = $name['forename'];
+			$tmp_names[ $rank ]['family'] = $name['surname'];
+		}
 
-    private function mendeleyType2CiteProcType($type)
-    {
-        if (!isset($this->type_map)) {
-            $this->type_map = array(
-                'Book' => 'book',
-                'Book Section' => 'chapter',
-                'Journal Article' => 'article-journal',
-                'Magazine Article' => 'article-magazine',
-                'Newspaper Article' => 'article-newspaper',
-                'Conference Proceedings' => 'paper-conference',
-                'Report' => 'report',
-                'Thesis' => 'thesis',
-                'Case' => 'legal_case',
-                'Encyclopedia Article' => 'entry-encyclopedia',
-                'Web Page' => 'webpage',
-                'Working Paper' => 'report',
-                'Generic' => 'chapter',
-            );
-        }
-        return $this->type_map[$type];
-    }
+		return $tmp_names;
+	}
 
-    private function pre_process( $doc ) {
-        // stdClass for showing document
-        $docdata = new stdClass;
-        $docdata->type = $this->mendeleyType2CiteProcType($doc['type']);
-        $docdata->author = $this->mendeleyNames2CiteProcNames($doc['authors']);
-        $docdata->editor = $this->mendeleyNames2CiteProcNames($doc['editors']);
-        $docdata->issued = (object)array('date-parts' => array(array($doc['year'])));
-        $docdata->title = $doc['title'];
-        if (isset($doc['published_in'])) {
-            $docdata->container_title = $doc['published_in'];
-        }
-        if (isset($doc['publication_outlet'])) {
-            $docdata->container_title = $doc['publication_outlet'];
-        }
-        if (isset($doc['journal'])) {
-            $docdata->container_title = $doc['journal'];
-        }
-        if (isset($doc['volume'])) {
-            $docdata->volume = $doc['volume'];
-        }
-        if (isset($doc['issue'])) {
-            $docdata->issue = $doc['issue'];
-        }
-        if (isset($doc['pages'])) {
-            $docdata->page = $doc['pages'];
-        }
-        if (isset($doc['publisher'])) {
-            $docdata->publisher = $doc['publisher'];
-        }
-        if (isset($doc['city'])) {
-            $docdata->publisher_place = $doc['city'];
-        }
-        if (isset($doc['url'])) {
-            $docdata->URL = $doc['url'];
-        }
-        if (isset($doc['doi'])) {
-            $docdata->DOI = $doc['doi'];
-        }
-        if (isset($doc['isbn'])) {
-            $docdata->ISBN = $doc['isbn'];
-        }
-        return $docdata;
-    }
+	private function mendeleyType2CiteProcType( $type ) {
+		if ( ! isset( $this->type_map ) ) {
+			$this->type_map = array(
+				'Book'                   => 'book',
+				'Book Section'           => 'chapter',
+				'Journal Article'        => 'article-journal',
+				'Magazine Article'       => 'article-magazine',
+				'Newspaper Article'      => 'article-newspaper',
+				'Conference Proceedings' => 'paper-conference',
+				'Report'                 => 'report',
+				'Thesis'                 => 'thesis',
+				'Case'                   => 'legal_case',
+				'Encyclopedia Article'   => 'entry-encyclopedia',
+				'Web Page'               => 'webpage',
+				'Working Paper'          => 'report',
+				'Generic'                => 'chapter',
+			);
+		}
 
+		return $this->type_map[ $type ];
+	}
+
+	private function pre_process( $doc ) {
+		// stdClass for showing document
+		$docdata         = new stdClass;
+		$docdata->type   = $this->mendeleyType2CiteProcType( $doc['type'] );
+		$docdata->author = $this->mendeleyNames2CiteProcNames( $doc['authors'] );
+		$docdata->editor = $this->mendeleyNames2CiteProcNames( $doc['editors'] );
+		$docdata->issued = (object) array( 'date-parts' => array( array( $doc['year'] ) ) );
+		$docdata->title  = $doc['title'];
+		if ( isset( $doc['published_in'] ) ) {
+			$docdata->container_title = $doc['published_in'];
+		}
+		if ( isset( $doc['publication_outlet'] ) ) {
+			$docdata->container_title = $doc['publication_outlet'];
+		}
+		if ( isset( $doc['journal'] ) ) {
+			$docdata->container_title = $doc['journal'];
+		}
+		if ( isset( $doc['volume'] ) ) {
+			$docdata->volume = $doc['volume'];
+		}
+		if ( isset( $doc['issue'] ) ) {
+			$docdata->issue = $doc['issue'];
+		}
+		if ( isset( $doc['pages'] ) ) {
+			$docdata->page = $doc['pages'];
+		}
+		if ( isset( $doc['publisher'] ) ) {
+			$docdata->publisher = $doc['publisher'];
+		}
+		if ( isset( $doc['city'] ) ) {
+			$docdata->publisher_place = $doc['city'];
+		}
+		if ( isset( $doc['url'] ) ) {
+			$docdata->URL = $doc['url'];
+		}
+		if ( isset( $doc['doi'] ) ) {
+			$docdata->DOI = $doc['doi'];
+		}
+		if ( isset( $doc['isbn'] ) ) {
+			$docdata->ISBN = $doc['isbn'];
+		}
+
+		return $docdata;
+	}
+
+	/**
+	 * NOTE:     Actions are points in the execution of a page or process
+	 *           lifecycle that WordPress fires.
+	 *
+	 *           Actions:    http://codex.wordpress.org/Plugin_API#Actions
+	 *           Reference:  http://codex.wordpress.org/Plugin_API/Action_Reference
+	 *
+	 * @since    1.0.0
+	 */
+	public function store_keys() {
+
+	}
 
 }
