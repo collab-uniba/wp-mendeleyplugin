@@ -1,1 +1,18 @@
-/* This stylesheet is used to style the admin option form of the plugin. */
+.updated {
+    background-color: darkgreen;
+    color: white;
+    padding: 2px;
+}
+
+.expired {
+    background-color: red;
+    color: white;
+    padding: 2px;
+}
+
+.debug input {
+    background-color: crimson;
+    color: white;
+    font-weight: bold;
+    font-style: italic;
+}
