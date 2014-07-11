@@ -73,3 +73,10 @@ if ( is_admin() && ( ! defined( 'DOING_AJAX' ) || ! DOING_AJAX ) ) {
 	add_action( 'plugins_loaded', array( 'CollabMendeleyPluginAdmin', 'get_instance' ) );
 
 }
+
+/*----------------------------------------------------------------------------*
+ * Mendeley API Functionality
+ *----------------------------------------------------------------------------*/
+
+require_once( plugin_dir_path( __FILE__ ) . 'includes/class-mendeley-api.php' );
+add_action( 'plugins_loaded', array( 'MendeleyApi', 'get_instance' ) );
