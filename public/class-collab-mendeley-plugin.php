@@ -333,12 +333,22 @@ class CollabMendeleyPlugin {
 			admin_url( 'options-general.php?page=' . $this->plugin_slug )
 		);
 		if ( time() > $options['expire_time'] ) {
-			$token = $client->refresh_access_token( $token_data_array['refresh_token'] );
+			$response                = $client->refresh_access_token( $token_data_array['refresh_token'] );
+			$options['access_token'] = $response;
+			$this->update_options( $options );
+
+			if ( ! $response['code'] == 200 ) {
+				// @FIXME: Manage this situation
+				die( 'unable to refresh access token' );
+			}
+			$token_data = $response['result'];
+			$token      = $token_data['access_token'];
 		}
 		$client->set_client_access_token( $token );
 		$publications = $client->get_authored_publications();
+		$formatted    = DocumentFormatter::format( $publications );
 
-		return $publications;
+		return $formatted;
 	}
 
 	/*----------------------------------------------------------------------------/
@@ -356,5 +366,13 @@ class CollabMendeleyPlugin {
 		}
 
 		return $opts;
+	}
+
+	private function update_options( $options ) {
+		if ( function_exists( 'is_multisite' ) && is_multisite() ) {
+			update_site_option( $this->plugin_slug, $options );
+		} else {
+			update_option( $this->plugin_slug, $options );
+		}
 	}
 }

@@ -238,13 +238,13 @@ class CollabMendeleyPluginAdmin {
 
 	public function client_id_input_callback( $args ) {
 		$options = $this->get_options();
-		$html = '<input type="text" id="client_id" name="' . $this->plugin_slug . '[client_id]" value="' . $options['client_id'] . '" />'; // readonly="'. (isset($options['client_id']) ? "true" : "false")  .'"
+		$html    = '<input type="text" id="client_id" name="' . $this->plugin_slug . '[client_id]" value="' . $options['client_id'] . '" />'; // readonly="'. (isset($options['client_id']) ? "true" : "false")  .'"
 		echo $html;
 	}
 
 	public function client_secret_input_callback( $args ) {
 		$options = $this->get_options();
-		$html = '<input type="text" id="client_secret" name="' . $this->plugin_slug . '[client_secret]" value="' . $options['client_secret'] . '" />'; // readonly="'. (isset($options['client_id']) ? "true" : "false") .'"
+		$html    = '<input type="text" id="client_secret" name="' . $this->plugin_slug . '[client_secret]" value="' . $options['client_secret'] . '" />'; // readonly="'. (isset($options['client_id']) ? "true" : "false") .'"
 		echo $html;
 	}
 
@@ -351,17 +351,19 @@ class CollabMendeleyPluginAdmin {
 			$options['access_token'] = $access_token;
 			$access_token_data       = $options['access_token']['result'];
 			$expire_time             = ( time() + $access_token_data['expires_in'] );
+			$expire_time_humanized   = date( 'd-n-Y H:i:s', $expire_time );
 			$options['expire_time']  = $expire_time;
+			$options['et_humanized'] = $expire_time_humanized;
 			$this->update_options( $options );
 		}
 
 	}
 
 	public function check_access_token() {
-		$options     = $this->get_options();
-		$result      = $options['access_token']['result'];
-		$expire_time = ( time() + $result['expire_in'] );
-		if ( time() > $expire_time ) {
+		$options           = $this->get_options();
+		$access_token_data = $options['access_token']['result'];
+
+		if ( time() > $access_token_data['expire_time'] ) {
 			$this->refresh_token();
 		}
 	}
@@ -371,11 +373,7 @@ class CollabMendeleyPluginAdmin {
 		$client        = $this->set_up_client( $options );
 		$result        = $options['access_token']['result'];
 		$refresh_token = $result['refresh_token'];
-		$client->set_client_id( $options['client_id'] );
-
-		$client->set_client_secret( $options['client_secret'] );
-		$client->set_callback_url( $this->callback_url );
-		$client->init();
+		$client->set_up( $options['client_id'], $options['client_secret'], $this->callback_url );
 		$new_token               = $client->refresh_access_token( $refresh_token );
 		$options['access_token'] = $new_token;
 		$access_token_data       = $options['access_token']['result'];
@@ -419,86 +417,6 @@ class CollabMendeleyPluginAdmin {
 		}
 	}
 
-
-	/*private function mendeleyNames2CiteProcNames( $names ) {
-		if ( ! $names ) {
-			return $names;
-		}
-		$tmp_names = array();
-		foreach ( $names as $rank => $name ) {
-			$tmp_names[ $rank ]['given']  = $name['forename'];
-			$tmp_names[ $rank ]['family'] = $name['surname'];
-		}
-
-		return $tmp_names;
-	}
-
-	private function mendeleyType2CiteProcType( $type ) {
-		if ( ! isset( $this->type_map ) ) {
-			$this->type_map = array(
-				'Book'                   => 'book',
-				'Book Section'           => 'chapter',
-				'Journal Article'        => 'article-journal',
-				'Magazine Article'       => 'article-magazine',
-				'Newspaper Article'      => 'article-newspaper',
-				'Conference Proceedings' => 'paper-conference',
-				'Report'                 => 'report',
-				'Thesis'                 => 'thesis',
-				'Case'                   => 'legal_case',
-				'Encyclopedia Article'   => 'entry-encyclopedia',
-				'Web Page'               => 'webpage',
-				'Working Paper'          => 'report',
-				'Generic'                => 'chapter',
-			);
-		}
-
-		return $this->type_map[ $type ];
-	}
-
-	private function pre_process( $doc ) {
-		// stdClass for showing document
-		$docdata         = new stdClass;
-		$docdata->type   = $this->mendeleyType2CiteProcType( $doc['type'] );
-		$docdata->author = $this->mendeleyNames2CiteProcNames( $doc['authors'] );
-		$docdata->editor = $this->mendeleyNames2CiteProcNames( $doc['editors'] );
-		$docdata->issued = (object) array( 'date-parts' => array( array( $doc['year'] ) ) );
-		$docdata->title  = $doc['title'];
-		if ( isset( $doc['published_in'] ) ) {
-			$docdata->container_title = $doc['published_in'];
-		}
-		if ( isset( $doc['publication_outlet'] ) ) {
-			$docdata->container_title = $doc['publication_outlet'];
-		}
-		if ( isset( $doc['journal'] ) ) {
-			$docdata->container_title = $doc['journal'];
-		}
-		if ( isset( $doc['volume'] ) ) {
-			$docdata->volume = $doc['volume'];
-		}
-		if ( isset( $doc['issue'] ) ) {
-			$docdata->issue = $doc['issue'];
-		}
-		if ( isset( $doc['pages'] ) ) {
-			$docdata->page = $doc['pages'];
-		}
-		if ( isset( $doc['publisher'] ) ) {
-			$docdata->publisher = $doc['publisher'];
-		}
-		if ( isset( $doc['city'] ) ) {
-			$docdata->publisher_place = $doc['city'];
-		}
-		if ( isset( $doc['url'] ) ) {
-			$docdata->URL = $doc['url'];
-		}
-		if ( isset( $doc['doi'] ) ) {
-			$docdata->DOI = $doc['doi'];
-		}
-		if ( isset( $doc['isbn'] ) ) {
-			$docdata->ISBN = $doc['isbn'];
-		}
-
-		return $docdata;
-	}*/
 
 	private function set_up_client( $options ) {
 		$client = MendeleyApi::get_instance();

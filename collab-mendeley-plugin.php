@@ -80,3 +80,9 @@ if ( is_admin() && ( ! defined( 'DOING_AJAX' ) || ! DOING_AJAX ) ) {
 
 require_once( plugin_dir_path( __FILE__ ) . 'includes/class-mendeley-api.php' );
 add_action( 'plugins_loaded', array( 'MendeleyApi', 'get_instance' ) );
+
+/*----------------------------------------------------------------------------*
+ * Documents Formatting (using CiteProc)
+ *----------------------------------------------------------------------------*/
+require_once( plugin_dir_path( __FILE__ ) . 'includes/class-document-formatter.php' );
+add_action( 'plugins_loaded', array( 'DocumentFormatter', 'get_instance' ) );
