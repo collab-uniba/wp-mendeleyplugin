@@ -1,10 +1,10 @@
-.updated {
+.token-updated {
     background-color: darkgreen;
     color: white;
     padding: 2px;
 }
 
-.expired {
+.token-expired {
     background-color: red;
     color: white;
     padding: 2px;

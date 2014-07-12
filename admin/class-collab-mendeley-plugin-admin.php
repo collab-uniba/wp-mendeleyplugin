@@ -19,16 +19,10 @@
  * @package CollabMendeleyPluginAdmin
  * @author  Davide Parisi <davideparisi@gmail.com>
  */
-if ( ! class_exists( "MendeleyApi" ) ) {
-	require_once plugin_dir_path( __DIR__ ) . "includes/class-mendeley-api-lib.php";
-}
+/*if ( ! class_exists( "MendeleyApi" ) ) {
+	require_once plugin_dir_path( __DIR__ ) . "includes/class-mendeley-api.php";
+}*/
 
-
-date_default_timezone_set( get_option( 'timezone_string' ) != '' ? get_option( 'timezone_string' ) : 'Europe/Rome' );
-
-if ( ! class_exists( "citeproc" ) ) {
-	include_once( 'includes/CiteProc.php' );
-}
 
 class CollabMendeleyPluginAdmin {
 
@@ -52,7 +46,7 @@ class CollabMendeleyPluginAdmin {
 
 	protected $options = null;
 
-	protected $client = null;
+	//protected $client = null;
 
 	protected $callback_url = '';
 
@@ -94,7 +88,7 @@ class CollabMendeleyPluginAdmin {
 		 * Read more about actions and filters:
 		 * http://codex.wordpress.org/Plugin_API#Hooks.2C_Actions_and_Filters
 		 */
-		add_action( 'admin_action_set_keys', array( $this, 'store_keys' ) );
+		// add_action( 'admin_action_set_keys', array( $this, 'store_keys' ) );
 		add_action( 'admin_action_request_token', array( $this, 'request_access_token' ) );
 		add_filter( '@TODO', array( $this, 'filter_method_name' ) );
 
@@ -102,38 +96,17 @@ class CollabMendeleyPluginAdmin {
 
 	}
 
-	public function init(){
+	public function init() {
 		$plugin             = CollabMendeleyPlugin::get_instance();
 		$this->plugin_slug  = $plugin->get_plugin_slug();
 		$this->callback_url = admin_url( 'options-general.php?page=' . $this->plugin_slug );
-		$this->client       = new MendeleyApi();
-		$this->options      = $this->get_options();
-		if (isset($this->options['access_token'])){
+		//$this->client       = new MendeleyApi();
+		$this->options = $this->get_options();
+		if ( isset( $this->options['access_token'] ) ) {
 			$this->check_access_token();
 		}
 	}
 
-	public function check_access_token(){
-		$options = $this->options;
-		$result = $options['access_token']['result'];
-		$expire_time = (time() + $result['expire_in']);
-		if ( time() > $expire_time){
-			$this->refresh_token();
-		}
-	}
-
-	public function refresh_token(){
-		$options = $this->options;
-		$result = $options['access_token']['result'];
-		$refresh_token = $result['refresh_token'];
-		$this->client->set_client_id($options['client_id']);
-		$this->client->set_client_secret($options['client_secret']);
-		$this->client->set_callback_url($this->callback_url);
-		$this->client->init();
-		$new_token = $this->client->refresh_access_token($refresh_token);
-		$options['access_token'] = $new_token;
-		$this->update_options($options);
-	}
 
 	/**
 	 * Return an instance of this class.
@@ -208,7 +181,7 @@ class CollabMendeleyPluginAdmin {
 	public function default_keys_options() {
 		$defaults = array(
 			'client_id'     => '',
-			'client_secret' => ''
+			'client_secret' => '',
 		);
 
 		return apply_filters( 'default_keys_options', $defaults );
@@ -264,22 +237,13 @@ class CollabMendeleyPluginAdmin {
 	}
 
 	public function client_id_input_callback( $args ) {
-		if ( function_exists( 'is_multisite' ) && is_multisite() ) {
-			$options = get_site_option( $this->plugin_slug );
-		} else {
-			$options = get_option( $this->plugin_slug );
-		}
-		$html = '<input type="text" id="client_id" name="' . $this->plugin_slug . '[client_id]" value="' . $options['client_id'] . '" />'; // readonly="'. (isset($options['client_id']) ? "true" : "false")  .'"
+		$options = $this->get_options();
+		$html    = '<input type="text" id="client_id" name="' . $this->plugin_slug . '[client_id]" value="' . $options['client_id'] . '" />'; // readonly="'. (isset($options['client_id']) ? "true" : "false")  .'"
 		echo $html;
 	}
 
 	public function client_secret_input_callback( $args ) {
-		if ( function_exists( 'is_multisite' ) && is_multisite() ) {
-			$options = get_site_option( $this->plugin_slug );
-		} else {
-			$options = get_option( $this->plugin_slug );
-		}
-		$options = get_option( $this->plugin_slug );
+		$options = $this->get_options();
 		$html    = '<input type="text" id="client_secret" name="' . $this->plugin_slug . '[client_secret]" value="' . $options['client_secret'] . '" />'; // readonly="'. (isset($options['client_id']) ? "true" : "false") .'"
 		echo $html;
 	}
@@ -367,41 +331,60 @@ class CollabMendeleyPluginAdmin {
 	}
 
 	public function request_access_token() {
-		$options = array();
-		if ( function_exists( 'is_multisite' ) && is_multisite() ) {
-			$options = get_site_option( $this->plugin_slug );
-		} else {
-			$options = get_option( $this->plugin_slug );
-		}
+		$options = $this->get_options();
 		if ( $options['client_id'] === '' || $options['client_secret'] === '' ) {
 			//@todo: do something if keys are void
 			exit();
 		}
-		if ( ! isset( $this->client ) ) {
-			$this->client = new MendeleyApi();
-		}
-		$this->client->set_client_id( $options['client_id'] );
-		$this->client->set_client_secret( $options['client_secret'] );
-		$this->client->set_callback_url( $this->callback_url );
-		$this->client->init();
-		$this->client->start_authorization_flow();
+		// get setted client instance
+		$client = $this->set_up_client( $options );
+
+		// Redirect to mendeley login page
+		$client->start_authorization_flow();
 	}
 
 	public function store_access_token( $auth_code ) {
-		$options = $this->get_options();
-		$this->client->set_client_id( $options['client_id'] );
-		$this->client->set_client_secret( $options['client_secret'] );
-		$this->client->set_callback_url( $this->callback_url );
-		$this->client->init();
-		$access_token            = $this->client->get_access_token( $auth_code );
-		$options['access_token'] = $access_token;
-		$this->update_options( $options );
+		$options      = $this->get_options();
+		$client       = $this->set_up_client( $options );
+		$access_token = $client->get_access_token( $auth_code );
+		if ( $access_token['code'] === 200 ) {
+			$options['access_token'] = $access_token;
+			$access_token_data       = $options['access_token']['result'];
+			$expire_time             = ( time() + $access_token_data['expires_in'] );
+			$expire_time_humanized   = date( 'd-n-Y H:i:s', $expire_time );
+			$options['expire_time']  = $expire_time;
+			$options['et_humanized'] = $expire_time_humanized;
+			$this->update_options( $options );
+		}
 
+	}
+
+	public function check_access_token() {
+		$options           = $this->get_options();
+		$access_token_data = $options['access_token']['result'];
+
+		if ( time() > $access_token_data['expire_time'] ) {
+			$this->refresh_token();
+		}
+	}
+
+	public function refresh_token() {
+		$options       = $this->get_options();
+		$client        = $this->set_up_client( $options );
+		$result        = $options['access_token']['result'];
+		$refresh_token = $result['refresh_token'];
+		$client->set_up( $options['client_id'], $options['client_secret'], $this->callback_url );
+		$new_token               = $client->refresh_access_token( $refresh_token );
+		$options['access_token'] = $new_token;
+		$access_token_data       = $options['access_token']['result'];
+		$expire_time             = ( time() + $access_token_data['expires_in'] );
+		$options['expire_time']  = $expire_time;
+		$this->update_options( $options );
 	}
 
 	/*------------------------------------------------------------------------------
 	 *
-	 * Private Functions
+	 * Private Functions/utilities
 	 *
 	 -----------------------------------------------------------------------------*/
 
@@ -412,7 +395,6 @@ class CollabMendeleyPluginAdmin {
 	 * @return null
 	 */
 	private function get_options() {
-		$opts = array();
 		if ( function_exists( 'is_multisite' ) && is_multisite() ) {
 			$opts = get_site_option( $this->plugin_slug );
 		} else {
@@ -436,103 +418,15 @@ class CollabMendeleyPluginAdmin {
 	}
 
 
-	private function mendeleyNames2CiteProcNames( $names ) {
-		if ( ! $names ) {
-			return $names;
-		}
-		$tmp_names = array();
-		foreach ( $names as $rank => $name ) {
-			$tmp_names[ $rank ]['given']  = $name['forename'];
-			$tmp_names[ $rank ]['family'] = $name['surname'];
-		}
+	private function set_up_client( $options ) {
+		$client = MendeleyApi::get_instance();
+		$client->set_up(
+			$options['client_id'],
+			$options['client_secret'],
+			$this->callback_url
+		);
+		$client->init();
 
-		return $tmp_names;
-	}
-
-	private function mendeleyType2CiteProcType( $type ) {
-		if ( ! isset( $this->type_map ) ) {
-			$this->type_map = array(
-				'Book'                   => 'book',
-				'Book Section'           => 'chapter',
-				'Journal Article'        => 'article-journal',
-				'Magazine Article'       => 'article-magazine',
-				'Newspaper Article'      => 'article-newspaper',
-				'Conference Proceedings' => 'paper-conference',
-				'Report'                 => 'report',
-				'Thesis'                 => 'thesis',
-				'Case'                   => 'legal_case',
-				'Encyclopedia Article'   => 'entry-encyclopedia',
-				'Web Page'               => 'webpage',
-				'Working Paper'          => 'report',
-				'Generic'                => 'chapter',
-			);
-		}
-
-		return $this->type_map[ $type ];
-	}
-
-	private function pre_process( $doc ) {
-		// stdClass for showing document
-		$docdata         = new stdClass;
-		$docdata->type   = $this->mendeleyType2CiteProcType( $doc['type'] );
-		$docdata->author = $this->mendeleyNames2CiteProcNames( $doc['authors'] );
-		$docdata->editor = $this->mendeleyNames2CiteProcNames( $doc['editors'] );
-		$docdata->issued = (object) array( 'date-parts' => array( array( $doc['year'] ) ) );
-		$docdata->title  = $doc['title'];
-		if ( isset( $doc['published_in'] ) ) {
-			$docdata->container_title = $doc['published_in'];
-		}
-		if ( isset( $doc['publication_outlet'] ) ) {
-			$docdata->container_title = $doc['publication_outlet'];
-		}
-		if ( isset( $doc['journal'] ) ) {
-			$docdata->container_title = $doc['journal'];
-		}
-		if ( isset( $doc['volume'] ) ) {
-			$docdata->volume = $doc['volume'];
-		}
-		if ( isset( $doc['issue'] ) ) {
-			$docdata->issue = $doc['issue'];
-		}
-		if ( isset( $doc['pages'] ) ) {
-			$docdata->page = $doc['pages'];
-		}
-		if ( isset( $doc['publisher'] ) ) {
-			$docdata->publisher = $doc['publisher'];
-		}
-		if ( isset( $doc['city'] ) ) {
-			$docdata->publisher_place = $doc['city'];
-		}
-		if ( isset( $doc['url'] ) ) {
-			$docdata->URL = $doc['url'];
-		}
-		if ( isset( $doc['doi'] ) ) {
-			$docdata->DOI = $doc['doi'];
-		}
-		if ( isset( $doc['isbn'] ) ) {
-			$docdata->ISBN = $doc['isbn'];
-		}
-
-		return $docdata;
-	}
-
-	/**
-	 * Generic function to show a message to the user using WP's
-	 * standard CSS classes to make use of the already-defined
-	 * message colour scheme.
-	 *
-	 * @param $message The message you want to tell the user.
-	 * @param $errormsg If true, the message is an error, so use
-	 * the red message style. If false, the message is a status
-	 * message, so use the yellow information message style.
-	 */
-	function showMessage( $message, $errormsg = false ) {
-		if ( $errormsg ) {
-			echo '<div id="message" class="error">';
-		} else {
-			echo '<div id="message" class="updated fade">';
-		}
-
-		echo "<p><strong>$message</strong></p></div>";
+		return $client;
 	}
 }

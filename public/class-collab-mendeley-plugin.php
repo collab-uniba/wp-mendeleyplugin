@@ -18,7 +18,15 @@
  *
  * @package CollabMendeleyPlugin
  * @author  Davide Parisi <davideparisi@gmail.com>
+ *
  */
+
+if ( ! class_exists( 'MendeleyApi' ) ) {
+	require_once plugin_dir_path( __DIR__ ) . "includes/class-mendeley-api.php";
+}
+
+date_default_timezone_set( get_option( 'timezone_string' ) != '' ? get_option( 'timezone_string' ) : 'Europe/Rome' );
+
 class CollabMendeleyPlugin {
 
 	/**
@@ -65,6 +73,7 @@ class CollabMendeleyPlugin {
 
 		// Load plugin text domain
 		add_action( 'init', array( $this, 'load_plugin_textdomain' ) );
+		add_action( 'init', array( $this, 'register_shortcode' ) );
 
 		// Activate plugin when new blog is added
 		add_action( 'wpmu_new_blog', array( $this, 'activate_new_site' ) );
@@ -114,7 +123,7 @@ class CollabMendeleyPlugin {
 	 *
 	 * @since    1.0.0
 	 *
-	 * @param    boolean    $network_wide    True if WPMU superadmin uses
+	 * @param    boolean $network_wide True if WPMU superadmin uses
 	 *                                       "Network Activate" action, false if
 	 *                                       WPMU is disabled or plugin is
 	 *                                       activated on an individual blog.
@@ -123,7 +132,7 @@ class CollabMendeleyPlugin {
 
 		if ( function_exists( 'is_multisite' ) && is_multisite() ) {
 
-			if ( $network_wide  ) {
+			if ( $network_wide ) {
 
 				// Get all blog ids
 				$blog_ids = self::get_blog_ids();
@@ -151,7 +160,7 @@ class CollabMendeleyPlugin {
 	 *
 	 * @since    1.0.0
 	 *
-	 * @param    boolean    $network_wide    True if WPMU superadmin uses
+	 * @param    boolean $network_wide True if WPMU superadmin uses
 	 *                                       "Network Deactivate" action, false if
 	 *                                       WPMU is disabled or plugin is
 	 *                                       deactivated on an individual blog.
@@ -189,7 +198,7 @@ class CollabMendeleyPlugin {
 	 *
 	 * @since    1.0.0
 	 *
-	 * @param    int    $blog_id    ID of the new blog.
+	 * @param    int $blog_id ID of the new blog.
 	 */
 	public function activate_new_site( $blog_id ) {
 
@@ -255,7 +264,7 @@ class CollabMendeleyPlugin {
 		$locale = apply_filters( 'plugin_locale', get_locale(), $domain );
 
 		load_textdomain( $domain, trailingslashit( WP_LANG_DIR ) . $domain . '/' . $domain . '-' . $locale . '.mo' );
-		load_plugin_textdomain( $domain, FALSE, basename( plugin_dir_path( dirname( __FILE__ ) ) ) . '/languages/' );
+		load_plugin_textdomain( $domain, false, basename( plugin_dir_path( dirname( __FILE__ ) ) ) . '/languages/' );
 
 	}
 
@@ -303,4 +312,71 @@ class CollabMendeleyPlugin {
 		// @TODO: Define your filter hook callback here
 	}
 
+	/*----------------------------------------------------------------------------/
+	 *
+	 * Process Shortcode
+	 *
+	 *---------------------------------------------------------------------------*/
+	public function register_shortcode() {
+		add_shortcode( 'mendeley', array( $this, 'authored_publications' ) );
+	}
+
+	public function authored_publications( $atts, $content = null ) {
+		$h = $atts['tag'];
+		$return_string    = '<'. $h . '>' . $content . '</'. $h . '>';
+		$options          = $this->get_options();
+		$token_data_array = $options['access_token']['result'];
+		$token            = $token_data_array['access_token'];
+		$d                = date( 'd-n-Y H:i:s', $options['expire_time'] );
+		$client           = MendeleyApi::get_instance();
+		$client->set_up(
+			$options['client_id'],
+			$options['client_secret'],
+			admin_url( 'options-general.php?page=' . $this->plugin_slug )
+		);
+		if ( time() > $options['expire_time'] ) {
+			$response                = $client->refresh_access_token( $token_data_array['refresh_token'] );
+			$options['access_token'] = $response;
+			$this->update_options( $options );
+
+			if ( ! $response['code'] == 200 ) {
+				// @FIXME: Manage this situation
+				die( 'unable to refresh access token' );
+			}
+			$token_data = $response['result'];
+			$token      = $token_data['access_token'];
+		}
+		$client->set_client_access_token( $token );
+		$publications = $client->get_authored_publications();
+		$formatted    = DocumentFormatter::format( $publications );
+		$return_string .= '<br/>';
+		$return_string .= $formatted;
+
+		return $return_string;
+	}
+
+	/*----------------------------------------------------------------------------/
+	 *
+	 * Utilities
+	 *
+	 *---------------------------------------------------------------------------*/
+
+	private function get_options() {
+		$opts = array();
+		if ( function_exists( 'is_multisite' ) && is_multisite() ) {
+			$opts = get_site_option( $this->plugin_slug );
+		} else {
+			$opts = get_option( $this->plugin_slug );
+		}
+
+		return $opts;
+	}
+
+	private function update_options( $options ) {
+		if ( function_exists( 'is_multisite' ) && is_multisite() ) {
+			update_site_option( $this->plugin_slug, $options );
+		} else {
+			update_option( $this->plugin_slug, $options );
+		}
+	}
 }

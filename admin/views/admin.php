@@ -12,11 +12,11 @@
  * @copyright 2014 --
  */
 
+date_default_timezone_set( get_option( 'timezone_string' ) != '' ? get_option( 'timezone_string' ) : 'Europe/Rome' );
 
 ?>
 
 <div class="wrap">
-
 	<h2><?php echo esc_html( get_admin_page_title() ); ?></h2>
 
 	<p>
@@ -50,14 +50,14 @@
 		$options = get_option( $this->plugin_slug );
 	}
 	if ( isset( $options['access_token'] ) ) {
-		$result     = $options['access_token']['result'];
-		$expires_at = time() + $result['expires_in'];
+		$access_token_data = $options['access_token']['result'];
+		$expires_at = $options['expire_time'];
 
 		$html = '<label for="access_token">Access Token:</label>';
 		$html .= '<br/>';
-		$html .= '<input id="access_token" type="text" readonly value="' . $result['access_token'] . '" size="85" />';
+		$html .= '<input id="access_token" type="text" readonly value="' . $access_token_data['access_token'] . '" size="85" />';
 		$html .= '<br/>';
-		$html .= '<p class="' . ( ( time() < $expires_at ) ? "updated" : "expired" ) . '"><b>Expire time: </b>' . date( 'd-n-Y H:i:s', $expires_at ) . '</p>';
+		$html .= '<p class="' . ( ( time() < $expires_at ) ? "token-updated" : "token-expired" ) . '"><b>Expire time: </b>' . date( 'd-n-Y H:i:s', $expires_at ) . '</p>';
 
 	} else {
 		$html = '<p><em>No access token requested for this account</em></p>';
