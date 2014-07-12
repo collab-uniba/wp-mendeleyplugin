@@ -19,10 +19,14 @@ date_default_timezone_set( get_option( 'timezone_string' ) != '' ? get_option( '
 <div class="wrap">
 	<h2><?php echo esc_html( get_admin_page_title() ); ?></h2>
 
-	<p>
+	<!--<p>
 		All calls to the Mendeley API require authentication using the <a href="http://oauth.net/2/">OAuth 2.0
 			protocol</a>.
-		In order to begin using the API a client must first register their application with the authorization server.
+	</p>
+	<p>
+		In order to begin using the API a client must first register their application with the <a href="http://dev.mendeley.com">authorization server</a>.
+	</p>
+	<p>
 		You have to:
 	<ol>
 		<li>Copy the redirect url below</li>
@@ -31,10 +35,10 @@ date_default_timezone_set( get_option( 'timezone_string' ) != '' ? get_option( '
 		<li>Insert client id and secret in the form below and store them to db</li>
 		<li>Click on request token</li>
 	</ol>
-	</p>
+	</p>-->
 
-	<label for="callback-url"><b>Redirect url</b> (<em>insert this when register the plugin in mendeley</em>)</label><br/>
-	<input type="text" value="<?php echo $this->callback_url; ?>" readonly size="60"/>
+	<label for="callback-url"><b>Redirect url</b> (<em>insert this when asked for a redirect URL</em>)</label><br/>
+	<input type="text" value="<?php echo $this->callback_url; ?>" readonly size="85"/>
 
 	<form action="options.php" method="post">
 		<?php settings_fields( $this->plugin_slug ); ?>

@@ -21,9 +21,9 @@
  *
  */
 
-if ( ! class_exists( 'MendeleyApi' ) ) {
+/*if ( ! class_exists( 'MendeleyApi' ) ) {
 	require_once plugin_dir_path( __DIR__ ) . "includes/class-mendeley-api.php";
-}
+}*/
 
 date_default_timezone_set( get_option( 'timezone_string' ) != '' ? get_option( 'timezone_string' ) : 'Europe/Rome' );
 
@@ -322,34 +322,46 @@ class CollabMendeleyPlugin {
 	}
 
 	public function authored_publications( $atts, $content = null ) {
-		$h = $atts['tag'];
-		$return_string    = '<'. $h . '>' . $content . '</'. $h . '>';
-		$options          = $this->get_options();
+		$options = $this->get_options();
+		if ( false == $options ) { // if cannot get options
+			return; // exit and do nothing
+		}
+
+		$tag = $atts['tag'];
+		if ( isset( $tag ) ) {
+			$return_string = '<' . $tag . '>' . $content . '</' . $tag . '>';
+			$return_string .= '<br/>';
+		}
+
+
 		$token_data_array = $options['access_token']['result'];
 		$token            = $token_data_array['access_token'];
-		$d                = date( 'd-n-Y H:i:s', $options['expire_time'] );
-		$client           = MendeleyApi::get_instance();
+
+		$client = MendeleyApi::get_instance();
 		$client->set_up(
 			$options['client_id'],
 			$options['client_secret'],
 			admin_url( 'options-general.php?page=' . $this->plugin_slug )
 		);
+
 		if ( time() > $options['expire_time'] ) {
 			$response                = $client->refresh_access_token( $token_data_array['refresh_token'] );
 			$options['access_token'] = $response;
 			$this->update_options( $options );
 
-			if ( ! $response['code'] == 200 ) {
+			if ( ! $response['code'] == 200 ) { // if there is a problem with the response
 				// @FIXME: Manage this situation
-				die( 'unable to refresh access token' );
+				return ''; // return a void string and do no harm...
 			}
+
 			$token_data = $response['result'];
 			$token      = $token_data['access_token'];
 		}
+
 		$client->set_client_access_token( $token );
 		$publications = $client->get_authored_publications();
 		$formatted    = DocumentFormatter::format( $publications );
-		$return_string .= '<br/>';
+
 		$return_string .= $formatted;
 
 		return $return_string;

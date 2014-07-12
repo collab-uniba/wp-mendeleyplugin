@@ -90,7 +90,9 @@ class CollabMendeleyPluginAdmin {
 		 */
 		// add_action( 'admin_action_set_keys', array( $this, 'store_keys' ) );
 		add_action( 'admin_action_request_token', array( $this, 'request_access_token' ) );
-		add_filter( '@TODO', array( $this, 'filter_method_name' ) );
+
+		// add contextual help
+		add_filter( 'contextual_help', array( $this, 'show_help' ) );
 
 		add_action( 'admin_init', array( $this, 'initialize_options' ) );
 
@@ -233,7 +235,7 @@ class CollabMendeleyPluginAdmin {
 	}
 
 	public function options_callback() {
-		echo '<p class="description">Insert the <code>client ID</code> and <code>client secret</code> you have got from registering this plugin on <a href="http://dev.mendeley.com">Mendeley</a></p>';
+		echo '<p class="description">Insert the <code>client ID</code> and <code>client secret</code> you have got from registering this plugin on <a href="http://dev.mendeley.com">Mendeley</a> (see contextual help tab above)</p>';
 	}
 
 	public function client_id_input_callback( $args ) {
@@ -326,15 +328,41 @@ class CollabMendeleyPluginAdmin {
 	 *
 	 * @since    1.0.0
 	 */
-	public function filter_method_name() {
-		// @TODO: Define your filter hook callback here
+	public function show_help() {
+		$screen = get_current_screen();
+		$screen->add_help_tab( array(
+			'id'       => 'plugin_options_help',
+			'title'    => 'Setup',
+			'content'  => "<h2>Mendeley Plugin Setup</h2>",
+			'callback' => array( $this, 'show_help_content' )
+		) );
+	}
+
+	public function show_help_content(){
+		$html = '<p>All calls to the Mendeley API require authentication using the <a href="http://oauth.net/2/">OAuth 2.0
+			protocol</a>.</p>';
+		$html .= '<p>In order to begin using the API a client must first register their application with the <a href="http://dev.mendeley.com">authorization server</a>.</p>';
+		$html .= '
+			<p>
+				You have to:
+				<ol>
+					<li>Copy the redirect url below</li>
+					<li>Register this plugin on <a href="http://dev.mendeley.com">Mendeley</a></li>
+					<li>Get the generated secret code and the client id</li>
+					<li>Insert client id and secret in the form below and store them to db</li>
+					<li>Click on request token</li>
+				</ol>
+			</p>
+		';
+
+		echo $html;
 	}
 
 	public function request_access_token() {
 		$options = $this->get_options();
 		if ( $options['client_id'] === '' || $options['client_secret'] === '' ) {
 			//@todo: do something if keys are void
-			exit();
+			return;
 		}
 		// get setted client instance
 		$client = $this->set_up_client( $options );
