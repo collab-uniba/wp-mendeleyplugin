@@ -321,7 +321,9 @@ class CollabMendeleyPlugin {
 		add_shortcode( 'mendeley', array( $this, 'authored_publications' ) );
 	}
 
-	public function authored_publications() {
+	public function authored_publications( $atts, $content = null ) {
+		$h = $atts['tag'];
+		$return_string    = '<'. $h . '>' . $content . '</'. $h . '>';
 		$options          = $this->get_options();
 		$token_data_array = $options['access_token']['result'];
 		$token            = $token_data_array['access_token'];
@@ -347,8 +349,10 @@ class CollabMendeleyPlugin {
 		$client->set_client_access_token( $token );
 		$publications = $client->get_authored_publications();
 		$formatted    = DocumentFormatter::format( $publications );
+		$return_string .= '<br/>';
+		$return_string .= $formatted;
 
-		return $formatted;
+		return $return_string;
 	}
 
 	/*----------------------------------------------------------------------------/
