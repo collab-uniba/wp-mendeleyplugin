@@ -39,7 +39,6 @@ class CollabMendeleyPlugin {
 	const VERSION = '1.0.0';
 
 	/**
-	 * @TODO - Rename "collab-mendeley-plugin" to the name of your plugin
 	 *
 	 * Unique identifier for your plugin.
 	 *
@@ -241,7 +240,10 @@ class CollabMendeleyPlugin {
 	 * @since    1.0.0
 	 */
 	private static function single_activate() {
-		// @TODO: Define activation functionality here
+		$admin = CollabMendeleyPluginAdmin::get_instance();
+		$admin->enqueue_admin_styles();
+		$admin->enqueue_admin_scripts();
+		$admin->add_plugin_admin_menu();
 	}
 
 	/**
@@ -335,6 +337,10 @@ class CollabMendeleyPlugin {
 
 
 		$token_data_array = $options['access_token']['result'];
+		if(!isset($token_data_array)){
+			//@todo: perhaps returning an empty string should be better...
+			return "you must set up mendeley plugin before using his shortcodes...";
+		}
 		$token            = $token_data_array['access_token'];
 
 		$client = MendeleyApi::get_instance();
@@ -374,21 +380,22 @@ class CollabMendeleyPlugin {
 	 *---------------------------------------------------------------------------*/
 
 	private function get_options() {
-		$opts = array();
-		if ( function_exists( 'is_multisite' ) && is_multisite() ) {
+		// $opts = array();
+		/*if ( function_exists( 'is_multisite' ) && is_multisite() ) {
 			$opts = get_site_option( $this->plugin_slug );
 		} else {
 			$opts = get_option( $this->plugin_slug );
-		}
-
+		}*/
+		$opts = get_option( $this->plugin_slug );
 		return $opts;
 	}
 
 	private function update_options( $options ) {
-		if ( function_exists( 'is_multisite' ) && is_multisite() ) {
+		/*if ( function_exists( 'is_multisite' ) && is_multisite() ) {
 			update_site_option( $this->plugin_slug, $options );
 		} else {
 			update_option( $this->plugin_slug, $options );
-		}
+		}*/
+		update_option( $this->plugin_slug, $options );
 	}
 }

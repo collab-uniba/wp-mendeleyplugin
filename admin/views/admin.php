@@ -37,7 +37,7 @@ date_default_timezone_set( get_option( 'timezone_string' ) != '' ? get_option( '
 	</ol>
 	</p>-->
 
-	<label for="callback-url"><b>Redirect url</b> (<em>insert this when asked for a redirect URL</em>)</label><br/>
+	<label for="callback-url"><b>Redirect url</b> (<em>enter this when asked for a redirect URL</em>)</label><br/>
 	<input type="text" value="<?php echo $this->callback_url; ?>" readonly size="85"/>
 
 	<form action="options.php" method="post">
@@ -48,11 +48,13 @@ date_default_timezone_set( get_option( 'timezone_string' ) != '' ? get_option( '
 
 	<h2>Access Token</h2>
 	<?php
-	if ( function_exists( 'is_multisite' ) && is_multisite() ) {
+	/*if ( function_exists( 'is_multisite' ) && is_multisite() ) {
 		$options = get_site_option( $this->plugin_slug );
 	} else {
 		$options = get_option( $this->plugin_slug );
-	}
+	}*/
+	$options = get_option( $this->plugin_slug );
+
 	if ( isset( $options['access_token'] ) ) {
 		$access_token_data = $options['access_token']['result'];
 		$expires_at = $options['expire_time'];
@@ -68,16 +70,20 @@ date_default_timezone_set( get_option( 'timezone_string' ) != '' ? get_option( '
 		$html .= '<p><em>With API key saved to the db you can now request your <b>access token</b> to mendeley</em></p>';
 		$html .= '<form action="' . admin_url( "admin.php" ) . '" method="post">';
 		$html .= '<input type="hidden" name="action" value="request_token"/>';
-		$html .= '<input type="submit" value="Request Token" class="button-primary"/>';
+		$html .= '<input type="submit" value="Request Token" class="button-primary"';
+		$html .= 'disabled="';
+		$html .= ($options['client_id'] == '' || $options['client_secret'] == '') ? "true" : "false";
+		$html .= '" />';
 		$html .= '</form>';
 	}
 	echo $html;
 	?>
-
+	<!--
 	<br/>
 	<br/>
 	<div class="debug">
 		<input type="text" value="592" readonly/> <br/>
 		<input type="text" value="naSqP2QvBSUJNx1J" readonly/>
 	</div>
+	-->
 </div>

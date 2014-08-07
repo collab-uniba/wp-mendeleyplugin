@@ -6,23 +6,21 @@
  * also follow WordPress Coding Standards and PHP best practices.
  *
  * @package   CollabMendeleyPlugin
- * @author    Davide Parisi <davideparisi@gmail.com>
+ * @author    Davide Parisi <davideparisi@gmail.com>, Nicola Musicco <nicolamc@hotmail.it>
  * @license   MIT
- * @link      http://example.com
- * @copyright 2014 Davide Parisi
  *
  * @wordpress-plugin
  * Plugin Name:       Collab Mendeley Plugin
- * Plugin URI:        @TODO
- * Description:       @TODO
+ * Plugin URI:        https://github.com/davideparisi/wp-mendeleyplugin
+ * Description:       Collab Mendeley Plugin
  * Version:           1.0.0
- * Author:            Davide Parisi
- * Author URI:        https://github.com/davideparisi
+ * Author:            Davide Parisi, Nicola Musicco
+ * Author URI:        https://github.com/collab-uniba/wp-mendeleyplugin
  * Text Domain:       collab-mendeley-plugin-locale
  * License:           MIT
- * License URI:       http://www.gnu.org/licenses/gpl-2.0.txt
+ * License URI:
  * Domain Path:       /languages
- * GitHub Plugin URI: https://github.com/<owner>/<repo>
+ * GitHub Plugin URI: https://github.com/collab-uniba/wp-mendeleyplugin
  * WordPress-Plugin-Boilerplate: v2.6.1
  */
 

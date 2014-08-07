@@ -122,6 +122,7 @@ class MendeleyApi {
 	public function get_authored_publications() {
 		// $url = 'https://api-oauth2.mendeley.com/oapi/library/documents/authored/';
 		$url = self::API_ENDPOINT . 'library/documents/authored';
+        // $url .= "?view=bib";
 
 		$response = $this->client->fetch( $url );
 		if ( ! $response['code'] == 200 ) {
