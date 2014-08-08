@@ -70,9 +70,8 @@ date_default_timezone_set( get_option( 'timezone_string' ) != '' ? get_option( '
 		$html .= '<p><em>With API key saved to the db you can now request your <b>access token</b> to mendeley</em></p>';
 		$html .= '<form action="' . admin_url( "admin.php" ) . '" method="post">';
 		$html .= '<input type="hidden" name="action" value="request_token"/>';
-		$html .= '<input type="submit" value="Request Token" class="button-primary"';
-		$html .= 'disabled="';
-		$html .= ($options['client_id'] == '' || $options['client_secret'] == '') ? "true" : "false";
+		$html .= '<input type="submit" value="Request Token" class="button-primary" ';
+		$html .= ($options['client_id'] == '' || $options['client_secret'] == '') ? "disabled" : "";
 		$html .= '" />';
 		$html .= '</form>';
 	}
