@@ -96,7 +96,12 @@ class CollabMendeleyPluginAdmin {
 
 		add_action( 'admin_init', array( $this, 'initialize_options' ) );
 
+		// tinyMCE buttons
+		add_action( 'admin_head', array( $this, 'add_tinymce_buttons' ) );
+		//add_action( 'admin_enqueue_scripts', array( $this, 'add_tinymce_buttons_stylesheet' ) );
+
 	}
+
 
 	public function init() {
 		$plugin             = CollabMendeleyPlugin::get_instance();
@@ -341,7 +346,7 @@ class CollabMendeleyPluginAdmin {
 		) );
 	}
 
-	public function show_help_content(){
+	public function show_help_content() {
 		$html = '<p>All calls to the Mendeley API require authentication using the <a href="http://oauth.net/2/">OAuth 2.0
 			protocol</a>.</p>';
 		$html .= '<p>In order to begin using the API a client must first register their application with the <a href="http://dev.mendeley.com">authorization server</a>.</p>';
@@ -413,6 +418,42 @@ class CollabMendeleyPluginAdmin {
 		$this->update_options( $options );
 	}
 
+	// register tinyMCE custom button(s)
+	public function add_tinymce_buttons() {
+		global $typenow;
+		// check user permission
+		if ( ! current_user_can( 'edit_posts' ) && ! current_user_can( 'edit_pages' ) ) {
+			return;
+		}
+		// verify post type
+		if ( ! in_array( $typenow, array( 'post', 'page' ) ) ) {
+			return;
+		}
+		// check if WYSIWYG is enabled
+		if ( get_user_option( 'rich_editing' ) == true ) {
+			add_filter( 'mce_external_plugins', array( $this, 'add_tinymce_plugin' ) );
+			add_filter( 'mce_buttons', array( $this, 'register_tinymce_buttons' ) );
+		}
+	}
+
+
+	public function add_tinymce_plugin( $plugin_array ) {
+		$plugin_array['collab_mendeley'] = plugins_url( 'assets/js/tinymce_plugin.js', __FILE__ );
+
+		return $plugin_array;
+	}
+
+	public function register_tinymce_buttons( $buttons ) {
+		array_push( $buttons, 'collab_mendeley_button' );
+
+		return $buttons;
+	}
+
+	/*public function add_tinymce_buttons_stylesheet() {
+		wp_enqueue_style( 'cmp_tinymce_button', plugins_url( 'asset/css/cmp_button.css', __FILE__ ) );
+	}*/
+
+
 	/*------------------------------------------------------------------------------
 	 *
 	 * Private Functions/utilities
@@ -432,6 +473,7 @@ class CollabMendeleyPluginAdmin {
 			$opts = get_option( $this->plugin_slug );
 		}*/
 		$opts = get_option( $this->plugin_slug );
+
 		return $opts;
 	}
 

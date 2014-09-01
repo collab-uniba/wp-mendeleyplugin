@@ -122,7 +122,7 @@ class MendeleyApi {
 	public function get_authored_publications() {
 		// $url = 'https://api-oauth2.mendeley.com/oapi/library/documents/authored/';
 		$url = self::API_ENDPOINT . 'library/documents/authored';
-        // $url .= "?view=bib";
+		// $url .= "?view=bib";
 
 		$response = $this->client->fetch( $url );
 		if ( ! $response['code'] == 200 ) {
@@ -170,6 +170,9 @@ class MendeleyApi {
 			$tmp_doc              = $this->pre_process( $response['result'] );
 			$documents[ $doc_id ] = $tmp_doc;
 		}
+		usort( $documents, function ( $a, $b ) {
+			return strcmp( $b->year, $a->year );
+		} );
 
 		return $documents;
 	}
@@ -221,6 +224,7 @@ class MendeleyApi {
 		$docdata->editor = $this->mendeleyNames2CiteProcNames( $doc['editors'] );
 		$docdata->issued = (object) array( 'date-parts' => array( array( $doc['year'] ) ) );
 		$docdata->title  = $doc['title'];
+		$docdata->year   = $doc['year'];
 		if ( isset( $doc['published_in'] ) ) {
 			$docdata->container_title = $doc['published_in'];
 		}

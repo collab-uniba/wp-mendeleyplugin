@@ -240,10 +240,8 @@ class CollabMendeleyPlugin {
 	 * @since    1.0.0
 	 */
 	private static function single_activate() {
-		$admin = CollabMendeleyPluginAdmin::get_instance();
-		$admin->enqueue_admin_styles();
-		$admin->enqueue_admin_scripts();
-		$admin->add_plugin_admin_menu();
+		//todo: define single activation functionality
+		//do_action('activate_plugin', 'wp-mendeleyplugin/collab-mendeley-plugin.php', false);
 	}
 
 	/**
@@ -253,6 +251,7 @@ class CollabMendeleyPlugin {
 	 */
 	private static function single_deactivate() {
 		// @TODO: Define deactivation functionality here
+		//do_action('deactivate_plugin', 'wp-mendeleyplugin/collab-mendeley-plugin.php', false);
 	}
 
 	/**
@@ -337,11 +336,11 @@ class CollabMendeleyPlugin {
 
 
 		$token_data_array = $options['access_token']['result'];
-		if(!isset($token_data_array)){
+		if ( ! isset( $token_data_array ) ) {
 			//@todo: perhaps returning an empty string should be better...
 			return "you must set up mendeley plugin before using his shortcodes...";
 		}
-		$token            = $token_data_array['access_token'];
+		$token = $token_data_array['access_token'];
 
 		$client = MendeleyApi::get_instance();
 		$client->set_up(
@@ -387,6 +386,7 @@ class CollabMendeleyPlugin {
 			$opts = get_option( $this->plugin_slug );
 		}*/
 		$opts = get_option( $this->plugin_slug );
+
 		return $opts;
 	}
 
