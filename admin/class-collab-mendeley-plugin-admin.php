@@ -82,13 +82,6 @@ class CollabMendeleyPluginAdmin {
 		$plugin_basename = plugin_basename( plugin_dir_path( realpath( dirname( __FILE__ ) ) ) . $this->plugin_slug . '.php' );
 		add_filter( 'plugin_action_links_' . $plugin_basename, array( $this, 'add_action_links' ) );
 
-		/*
-		 * Define custom functionality.
-		 *
-		 * Read more about actions and filters:
-		 * http://codex.wordpress.org/Plugin_API#Hooks.2C_Actions_and_Filters
-		 */
-		// add_action( 'admin_action_set_keys', array( $this, 'store_keys' ) );
 		add_action( 'admin_action_request_token', array( $this, 'request_access_token' ) );
 
 		// add contextual help
@@ -98,8 +91,6 @@ class CollabMendeleyPluginAdmin {
 
 		// tinyMCE buttons
 		add_action( 'admin_head', array( $this, 'add_tinymce_buttons' ) );
-		//add_action( 'admin_enqueue_scripts', array( $this, 'add_tinymce_buttons_stylesheet' ) );
-
 	}
 
 
@@ -107,7 +98,6 @@ class CollabMendeleyPluginAdmin {
 		$plugin             = CollabMendeleyPlugin::get_instance();
 		$this->plugin_slug  = $plugin->get_plugin_slug();
 		$this->callback_url = admin_url( 'options-general.php?page=' . $this->plugin_slug );
-		//$this->client       = new MendeleyApi();
 		$this->options = $this->get_options();
 		if ( isset( $this->options['access_token'] ) ) {
 			$this->check_access_token();
@@ -182,8 +172,8 @@ class CollabMendeleyPluginAdmin {
 	}
 
 	/* ------------------------------------------------------------------------ *
-    * Setting Registration
-    * ------------------------------------------------------------------------ */
+  * Setting Registration
+  * ------------------------------------------------------------------------ */
 
 	public function default_keys_options() {
 		$defaults = array(
@@ -195,17 +185,6 @@ class CollabMendeleyPluginAdmin {
 	}
 
 	public function initialize_options() {
-
-		// check if multisite environment
-		/*if ( function_exists( 'is_multisite' ) && is_multisite() ) {
-			if ( false === get_site_option( $this->plugin_slug ) ) {
-				add_site_option( $this->plugin_slug, apply_filters( 'default_keys_options', $this->default_keys_options() ) );
-			}
-		} else {
-			if ( false === get_option( $this->plugin_slug ) ) {
-				add_option( $this->plugin_slug, apply_filters( 'default_keys_options', $this->default_keys_options() ) );
-			}
-		}*/
 
 		add_option( $this->plugin_slug, apply_filters( 'default_keys_options', $this->default_keys_options() ) );
 
@@ -248,13 +227,13 @@ class CollabMendeleyPluginAdmin {
 
 	public function client_id_input_callback( $args ) {
 		$options = $this->get_options();
-		$html    = '<input type="text" id="client_id" name="' . $this->plugin_slug . '[client_id]" value="' . $options['client_id'] . '" />'; // readonly="'. (isset($options['client_id']) ? "true" : "false")  .'"
+		$html    = '<input type="text" id="client_id" name="' . $this->plugin_slug . '[client_id]" value="' . $options['client_id'] . '" />';
 		echo $html;
 	}
 
 	public function client_secret_input_callback( $args ) {
 		$options = $this->get_options();
-		$html    = '<input type="password" id="client_secret" name="' . $this->plugin_slug . '[client_secret]" value="' . $options['client_secret'] . '" />'; // readonly="'. (isset($options['client_id']) ? "true" : "false") .'"
+		$html    = '<input type="password" id="client_secret" name="' . $this->plugin_slug . '[client_secret]" value="' . $options['client_secret'] . '" />';
 		echo $html;
 	}
 
@@ -449,11 +428,6 @@ class CollabMendeleyPluginAdmin {
 		return $buttons;
 	}
 
-	/*public function add_tinymce_buttons_stylesheet() {
-		wp_enqueue_style( 'cmp_tinymce_button', plugins_url( 'asset/css/cmp_button.css', __FILE__ ) );
-	}*/
-
-
 	/*------------------------------------------------------------------------------
 	 *
 	 * Private Functions/utilities
@@ -467,11 +441,6 @@ class CollabMendeleyPluginAdmin {
 	 * @return null
 	 */
 	private function get_options() {
-		/*if ( function_exists( 'is_multisite' ) && is_multisite() ) {
-			$opts = get_site_option( $this->plugin_slug );
-		} else {
-			$opts = get_option( $this->plugin_slug );
-		}*/
 		$opts = get_option( $this->plugin_slug );
 
 		return $opts;
@@ -483,11 +452,6 @@ class CollabMendeleyPluginAdmin {
 	 * @param $options
 	 */
 	private function update_options( $options ) {
-		/*if ( function_exists( 'is_multisite' ) && is_multisite() ) {
-			update_site_option( $this->plugin_slug, $options );
-		} else {
-			update_option( $this->plugin_slug, $options );
-		}*/
 		update_option( $this->plugin_slug, $options );
 
 	}

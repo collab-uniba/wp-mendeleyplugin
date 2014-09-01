@@ -1,9 +1,8 @@
 ( function() {
     tinymce.PluginManager.add( 'collab_mendeley', function( editor, url ) {
         var tmp_path = url.split("/admin");
-        console.log(tmp_path);
         var icon_path = tmp_path[0] + '/assets/img/icon_mendeley.png';
-        console.log(icon_path);
+        // console.log(icon_path);
         // Add a button that opens a window
         editor.addButton( 'collab_mendeley_button', {
 

@@ -84,3 +84,4 @@ add_action( 'plugins_loaded', array( 'MendeleyApi', 'get_instance' ) );
  *----------------------------------------------------------------------------*/
 require_once( plugin_dir_path( __FILE__ ) . 'includes/class-document-formatter.php' );
 add_action( 'plugins_loaded', array( 'DocumentFormatter', 'get_instance' ) );
+
