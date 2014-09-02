@@ -290,9 +290,10 @@ class CollabMendeleyPlugin {
 			return; // exit and do nothing
 		}
 
-		$tag = $atts['tag'];
-		if ( isset( $tag ) ) {
-			$return_string = '<' . $tag . '>' . $content . '</' . $tag . '>';
+		$titletag   = $atts['titletag'];
+		$sectiontag = $atts['sectiontag'];
+		if ( isset( $titletag ) ) {
+			$return_string = '<' . $titletag . '>' . $content . '</' . $titletag . '>';
 			$return_string .= '<br/>';
 		}
 
@@ -300,7 +301,7 @@ class CollabMendeleyPlugin {
 		$token_data_array = $options['access_token']['result'];
 		if ( ! isset( $token_data_array ) ) {
 			//@todo: perhaps returning an empty string should be better...
-			return "you must set up mendeley plugin before using his shortcodes...";
+			return "you must set up mendeley plugin before using this shortcode...";
 		}
 		$token = $token_data_array['access_token'];
 
@@ -327,9 +328,20 @@ class CollabMendeleyPlugin {
 
 		$client->set_client_access_token( $token );
 		$publications = $client->get_authored_publications();
-		$formatted    = DocumentFormatter::format( $publications );
+		foreach ( $publications as $type => $documents ) {
+			//var_dump($type,$documents);
+			usort( $documents, function ( $a, $b ) {
+				return strcmp( $b->year, $a->year );
+			} );
+			$formatted = DocumentFormatter::format( $documents );
+			if ( isset( $sectiontag ) ) {
+				$return_string .= '<' . $sectiontag . '>' . $type . '</' . $sectiontag . '><br/>';
+			}
+			$return_string .= $formatted;
+		}
+		//$formatted    = DocumentFormatter::format( $publications );
 
-		$return_string .= $formatted;
+		//$return_string .= $formatted;
 
 		return $return_string;
 	}
@@ -341,23 +353,14 @@ class CollabMendeleyPlugin {
 	 *---------------------------------------------------------------------------*/
 
 	private function get_options() {
-		// $opts = array();
-		/*if ( function_exists( 'is_multisite' ) && is_multisite() ) {
-			$opts = get_site_option( $this->plugin_slug );
-		} else {
-			$opts = get_option( $this->plugin_slug );
-		}*/
+
 		$opts = get_option( $this->plugin_slug );
 
 		return $opts;
 	}
 
 	private function update_options( $options ) {
-		/*if ( function_exists( 'is_multisite' ) && is_multisite() ) {
-			update_site_option( $this->plugin_slug, $options );
-		} else {
-			update_option( $this->plugin_slug, $options );
-		}*/
+
 		update_option( $this->plugin_slug, $options );
 	}
 }

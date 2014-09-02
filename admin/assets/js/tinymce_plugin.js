@@ -20,12 +20,17 @@
                     },
                         {
                             type: 'textbox',
-                            name: 'tag',
-                            label: 'Enclosing Tag'
+                            name: 'titletag',
+                            label: 'Title HTML Tag'
+                        },
+                        {
+                            type: 'textbox',
+                            name: 'sectiontag',
+                            label: 'Sections HTML Tag'
                         }],
                     onsubmit: function( e ) {
                         // Insert content when the window form is submitted
-                        editor.insertContent( '[mendeley tag=' + e.data.tag + ']' + e.data.title + '[/mendeley]' );
+                        editor.insertContent( '[mendeley titletag=' + e.data.titletag + ' sectiontag=' + e.data.sectiontag + ']' + e.data.title + '[/mendeley]' );
                     }
 
                 } );

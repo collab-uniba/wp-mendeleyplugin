@@ -122,10 +122,10 @@ class MendeleyApi {
 	public function get_authored_publications() {
 		// $url = 'https://api-oauth2.mendeley.com/oapi/library/documents/authored/';
 		$url = self::API_ENDPOINT . 'library/documents/authored';
-		// $url .= "?view=bib";
+		//$url .= '?filter="type=journal"';
 
 		$response = $this->client->fetch( $url );
-		if ( ! $response['code'] == 200 ) {
+		if (  $response['code'] != 200 ) {
 			return null;
 		}
 
@@ -164,19 +164,34 @@ class MendeleyApi {
 
 	private function process_authored_publications( $data ) {
 		$documents_id_array = $data['document_ids'];
-		$documents          = array();
+		$pubblications          = array();
+		//$doctypes = $this->get_document_types();
 		foreach ( $documents_id_array as $doc_id ) {
 			$response             = $this->get_document( $doc_id );
+			$type = $response['result']['type'];
 			$tmp_doc              = $this->pre_process( $response['result'] );
-			$documents[ $doc_id ] = $tmp_doc;
+			$pubblications[$type][$doc_id] = $tmp_doc;
 		}
-		usort( $documents, function ( $a, $b ) {
-			return strcmp( $b->year, $a->year );
-		} );
 
-		return $documents;
+		/*usort( $pubblications, function ( $a, $b ) {
+			return strcmp( $b->year, $a->year );
+		} );*/
+
+		return $pubblications;
 	}
 
+	private function get_document_types(){
+		$url = 'https://api.mendeley.com:443/document_types';
+		$document_types = $this->client->fetch($url);
+		if ($document_types['code'] != 200) {
+			return null;
+		}
+		$doctypes = array();
+		foreach ($document_types['result'] as $doctype){
+			array_push($doctypes, $doctype['description']);
+		}
+		return $doctypes;
+	}
 
 	/*
 	 * Preprocessing
