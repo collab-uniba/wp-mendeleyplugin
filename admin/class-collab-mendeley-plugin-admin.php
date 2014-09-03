@@ -83,6 +83,7 @@ class CollabMendeleyPluginAdmin {
 		add_filter( 'plugin_action_links_' . $plugin_basename, array( $this, 'add_action_links' ) );
 
 		add_action( 'admin_action_request_token', array( $this, 'request_access_token' ) );
+		add_action( 'admin_action_import_publications', array( $this, 'import_authored_publications' ) );
 
 		// add contextual help
 		add_filter( 'contextual_help', array( $this, 'show_help' ) );
@@ -98,7 +99,7 @@ class CollabMendeleyPluginAdmin {
 		$plugin             = CollabMendeleyPlugin::get_instance();
 		$this->plugin_slug  = $plugin->get_plugin_slug();
 		$this->callback_url = admin_url( 'options-general.php?page=' . $this->plugin_slug );
-		$this->options = $this->get_options();
+		$this->options      = $this->get_options();
 		if ( isset( $this->options['access_token'] ) ) {
 			$this->check_access_token();
 		}
@@ -172,8 +173,8 @@ class CollabMendeleyPluginAdmin {
 	}
 
 	/* ------------------------------------------------------------------------ *
-  * Setting Registration
-  * ------------------------------------------------------------------------ */
+    * Setting Registration
+    * ------------------------------------------------------------------------ */
 
 	public function default_keys_options() {
 		$defaults = array(
@@ -356,6 +357,53 @@ class CollabMendeleyPluginAdmin {
 
 		// Redirect to mendeley login page
 		$client->start_authorization_flow();
+	}
+
+	public function import_authored_publications() {
+		$options = $this->get_options();
+		$url = $_SERVER['HTTP_REFERER'];
+		if ( false == $options ) { // if cannot get options
+			return; // exit and do nothing
+		}
+		$token_data_array = $options['access_token']['result'];
+		if ( ! isset( $token_data_array ) ) {
+			//@todo: perhaps returning an empty string should be better...
+			return "you must set up mendeley plugin before using this shortcode...";
+		}
+		$token = $token_data_array['access_token'];
+
+		$client = MendeleyApi::get_instance();
+		$client->set_up(
+			$options['client_id'],
+			$options['client_secret'],
+			admin_url( 'options-general.php?page=' . $this->plugin_slug )
+		);
+
+		if ( time() > $options['expire_time'] ) {
+			$response                = $client->refresh_access_token( $token_data_array['refresh_token'] );
+			$options['access_token'] = $response;
+			$this->update_options( $options );
+
+			if ( $response['code'] != 200 ) { // if there is a problem with the response
+				// @FIXME: Manage this situation
+				return ''; // return a void string and do no harm...
+			}
+
+			$token_data = $response['result'];
+			$token      = $token_data['access_token'];
+		}
+
+		$client->set_client_access_token( $token );
+		$publications = $client->get_authored_publications();
+		// set the cache
+		$options['cache'] = true;
+		$dt = new DateTime();
+		$options['last-import'] = $dt->format('d-m-Y H:i:s');
+		$this->update_options( $options );
+		add_option( $this->plugin_slug . '-cache', $publications );
+
+		wp_redirect($url);
+
 	}
 
 	public function store_access_token( $auth_code ) {

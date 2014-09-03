@@ -285,19 +285,56 @@ class CollabMendeleyPlugin {
 	}
 
 	public function authored_publications( $atts, $content = null ) {
-		$options = $this->get_options();
-		if ( false == $options ) { // if cannot get options
-			return; // exit and do nothing
-		}
-
 		$titletag   = $atts['titletag'];
 		$sectiontag = $atts['sectiontag'];
 		if ( isset( $titletag ) ) {
 			$return_string = '<' . $titletag . '>' . $content . '</' . $titletag . '>';
 			$return_string .= '<br/>';
 		}
+		$publications = $this->get_publications();
+		if ( isset( $publications ) ) {
+			foreach ( $publications as $type => $documents ) {
+				usort( $documents, function ( $a, $b ) {
+					return strcmp( $b->year, $a->year );
+				} );
+				$formatted = DocumentFormatter::format( $documents );
+				if ( isset( $sectiontag ) ) {
+					$return_string .= '<' . $sectiontag . '>' . $type . '</' . $sectiontag . '><br/>';
+				}
+				$return_string .= $formatted;
+			}
+		}
 
+		return $return_string;
+	}
 
+	private function get_publications() {
+		// get the stored options
+		$options = $this->get_options();
+		// if publications in cache
+		if ( isset( $options['cache'] ) ) {
+			if ( $options['cache'] == true ) // return the cached publications
+			{
+				return $this->get_cached_publications();
+			}
+
+			return $this->get_remote_publications();
+		}
+
+		return $this->get_remote_publications();
+	}
+
+	private function get_cached_publications() {
+		$publications = get_option($this->plugin_slug . '-cache');
+
+		return $publications;
+	}
+
+	private function get_remote_publications() {
+		$options = $this->get_options();
+		if ( false == $options ) { // if cannot get options
+			return; // exit and do nothing
+		}
 		$token_data_array = $options['access_token']['result'];
 		if ( ! isset( $token_data_array ) ) {
 			//@todo: perhaps returning an empty string should be better...
@@ -317,7 +354,7 @@ class CollabMendeleyPlugin {
 			$options['access_token'] = $response;
 			$this->update_options( $options );
 
-			if ( ! $response['code'] == 200 ) { // if there is a problem with the response
+			if ( $response['code'] != 200 ) { // if there is a problem with the response
 				// @FIXME: Manage this situation
 				return ''; // return a void string and do no harm...
 			}
@@ -328,22 +365,12 @@ class CollabMendeleyPlugin {
 
 		$client->set_client_access_token( $token );
 		$publications = $client->get_authored_publications();
-		foreach ( $publications as $type => $documents ) {
-			//var_dump($type,$documents);
-			usort( $documents, function ( $a, $b ) {
-				return strcmp( $b->year, $a->year );
-			} );
-			$formatted = DocumentFormatter::format( $documents );
-			if ( isset( $sectiontag ) ) {
-				$return_string .= '<' . $sectiontag . '>' . $type . '</' . $sectiontag . '><br/>';
-			}
-			$return_string .= $formatted;
-		}
-		//$formatted    = DocumentFormatter::format( $publications );
+		// set the cache
+		$options['cache'] = true;
+		$this->update_options($options);
+		add_option($this->plugin_slug . '-cache', $publications);
 
-		//$return_string .= $formatted;
-
-		return $return_string;
+		return $publications;
 	}
 
 	/*----------------------------------------------------------------------------/
