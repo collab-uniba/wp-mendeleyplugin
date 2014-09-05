@@ -100,7 +100,8 @@ class CollabMendeleyPluginAdmin {
 		$this->plugin_slug  = $plugin->get_plugin_slug();
 		$this->callback_url = admin_url( 'options-general.php?page=' . $this->plugin_slug );
 		$this->options      = $this->get_options();
-		if ( isset( $this->options['access_token'] ) ) {
+		$actoken            = $this->option['access-token'];
+		if ( isset( $actoken ) && $actoken ) {
 			$this->check_access_token();
 		}
 	}
@@ -361,7 +362,7 @@ class CollabMendeleyPluginAdmin {
 
 	public function import_authored_publications() {
 		$options = $this->get_options();
-		$url = $_SERVER['HTTP_REFERER'];
+		$url     = $_SERVER['HTTP_REFERER'];
 		if ( false == $options ) { // if cannot get options
 			return; // exit and do nothing
 		}
@@ -395,14 +396,16 @@ class CollabMendeleyPluginAdmin {
 
 		$client->set_client_access_token( $token );
 		$publications = $client->get_authored_publications();
+		$author_info  = $client->get_account_info();
 		// set the cache
 		$options['cache'] = true;
-		$dt = new DateTime();
-		$options['last-import'] = $dt->format('d-m-Y H:i:s');
+		add_option( $this->plugin_slug . '-account-info', $author_info );
+		$dt                     = new DateTime();
+		$options['last-import'] = $dt->format( 'd-m-Y H:i:s' );
 		$this->update_options( $options );
 		add_option( $this->plugin_slug . '-cache', $publications );
 
-		wp_redirect($url);
+		wp_redirect( $url );
 
 	}
 
@@ -436,6 +439,7 @@ class CollabMendeleyPluginAdmin {
 		$client        = $this->set_up_client( $options );
 		$result        = $options['access_token']['result'];
 		$refresh_token = $result['refresh_token'];
+
 		$client->set_up( $options['client_id'], $options['client_secret'], $this->callback_url );
 		$new_token               = $client->refresh_access_token( $refresh_token );
 		$options['access_token'] = $new_token;
@@ -488,7 +492,7 @@ class CollabMendeleyPluginAdmin {
 	 *
 	 * @return null
 	 */
-	private function get_options() {
+	public function get_options() {
 		$opts = get_option( $this->plugin_slug );
 
 		return $opts;

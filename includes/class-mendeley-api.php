@@ -19,6 +19,7 @@ class MendeleyApi {
 	const TOKEN_ENDPOINT = 'https://mix.mendeley.com/oauth/token';
 	const API_ENDPOINT = 'https://api-oauth2.mendeley.com/oapi/';
 
+
 	protected $client = null;
 
 	protected $client_id;
@@ -120,9 +121,8 @@ class MendeleyApi {
 	}
 
 	public function get_authored_publications() {
-		// $url = 'https://api-oauth2.mendeley.com/oapi/library/documents/authored/';
+
 		$url = self::API_ENDPOINT . 'library/documents/authored';
-		//$url .= '?filter="type=journal"';
 
 		$response = $this->client->fetch( $url );
 		if (  $response['code'] != 200 ) {
@@ -130,8 +130,9 @@ class MendeleyApi {
 		}
 
 		$documents = $response['result'];
+		$data = $this->process_authored_publications( $documents );
 
-		return $this->process_authored_publications( $documents );
+		return $data;
 	}
 
 	public function get_document( $id ) {
@@ -139,6 +140,17 @@ class MendeleyApi {
 		$document = $this->client->fetch( $url );
 
 		return $document;
+	}
+
+	public function get_account_info() {
+		$url = self::API_ENDPOINT . 'profiles/info/me';
+		$info = $this->client->fetch($url);
+
+		if ($info['code'] == 200){
+			return $info['result'];
+		}
+
+		return null;
 	}
 
 	/**
@@ -155,6 +167,10 @@ class MendeleyApi {
 		$this->init();
 	}
 
+	public function fetch($url, $parameters = array()){
+		$this->client->fetch($url, $parameters);
+	}
+
 
 	/*-------------------------------------------------------------------------------
 	 *
@@ -165,17 +181,16 @@ class MendeleyApi {
 	private function process_authored_publications( $data ) {
 		$documents_id_array = $data['document_ids'];
 		$pubblications          = array();
-		//$doctypes = $this->get_document_types();
 		foreach ( $documents_id_array as $doc_id ) {
 			$response             = $this->get_document( $doc_id );
+			if ($response['code'] != 200 ){
+				continue;
+			}
 			$type = $response['result']['type'];
-			$tmp_doc              = $this->pre_process( $response['result'] );
-			$pubblications[$type][$doc_id] = $tmp_doc;
+			//$tmp_doc              = $this->pre_process( $response['result'] );
+			$pubblications['data'][$type][$doc_id] = $response['result'];
 		}
 
-		/*usort( $pubblications, function ( $a, $b ) {
-			return strcmp( $b->year, $a->year );
-		} );*/
 
 		return $pubblications;
 	}

@@ -291,21 +291,37 @@ class CollabMendeleyPlugin {
 			$return_string = '<' . $titletag . '>' . $content . '</' . $titletag . '>';
 			$return_string .= '<br/>';
 		}
-		$publications = $this->get_publications();
-		if ( isset( $publications ) ) {
-			foreach ( $publications as $type => $documents ) {
-				usort( $documents, function ( $a, $b ) {
-					return strcmp( $b->year, $a->year );
-				} );
-				$formatted = DocumentFormatter::format( $documents );
-				if ( isset( $sectiontag ) ) {
-					$return_string .= '<' . $sectiontag . '>' . $type . '</' . $sectiontag . '><br/>';
-				}
-				$return_string .= $formatted;
+		$publications      = $this->get_publications();
+		$main_author       = $this->get_account_info();
+		$main_author_array = explode( " ", ucwords( $main_author ) );
+		if ( ! isset( $publications['data'] ) || $publications == false ) {
+			$publications = $this->get_remote_publications();
+		}
+		foreach ( $publications['data'] as $type => $documents ) {
+			usort( $documents, function ( $a, $b ) {
+				return strcmp( $b['year'], $a['year'] );
+			} );
+
+			$formatted_alt = DocumentFormatter::custom_format( $documents, $main_author_array, $this->get_access_token() );
+			if ( isset( $sectiontag ) ) {
+				$return_string .= '<' . $sectiontag . '>' . $type . '</' . $sectiontag . '><br/>';
 			}
+
+			$return_string .= $formatted_alt;
 		}
 
 		return $return_string;
+	}
+
+	private function get_account_info() {
+		$options = get_option( $this->plugin_slug . '-account-info' );
+
+		return $options['main']['name'];
+	}
+
+	private function get_access_token(){
+		$options = $this->get_options();
+		return $options['access-token']['result']['access-token'];
 	}
 
 	private function get_publications() {
@@ -325,12 +341,13 @@ class CollabMendeleyPlugin {
 	}
 
 	private function get_cached_publications() {
-		$publications = get_option($this->plugin_slug . '-cache');
+		$publications = get_option( $this->plugin_slug . '-cache' );
 
 		return $publications;
 	}
 
 	private function get_remote_publications() {
+
 		$options = $this->get_options();
 		if ( false == $options ) { // if cannot get options
 			return; // exit and do nothing
@@ -340,6 +357,7 @@ class CollabMendeleyPlugin {
 			//@todo: perhaps returning an empty string should be better...
 			return "you must set up mendeley plugin before using this shortcode...";
 		}
+
 		$token = $token_data_array['access_token'];
 
 		$client = MendeleyApi::get_instance();
@@ -366,9 +384,11 @@ class CollabMendeleyPlugin {
 		$client->set_client_access_token( $token );
 		$publications = $client->get_authored_publications();
 		// set the cache
-		$options['cache'] = true;
-		$this->update_options($options);
-		add_option($this->plugin_slug . '-cache', $publications);
+
+		$options['account-info'] = $client->get_account_info();
+		$options['cache']        = true;
+		$this->update_options( $options );
+		add_option( $this->plugin_slug . '-cache', $publications );
 
 		return $publications;
 	}

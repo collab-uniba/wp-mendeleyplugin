@@ -1,1 +1,27 @@
 /* This stylesheet is used to style the public-facing components of the plugin. */
+
+.collab-mendeley-authored-list {
+
+}
+
+.collab-mendeley-year {
+    font-weight: bolder;
+}
+
+.collab-mendeley-title {
+    font-style: italic;
+}
+
+.collab-mendeley-author {
+    font-weight: bold;
+}
+
+.collab-mendeley-identifiers {
+    font-weight: bold;
+}
+
+.collab-mendeley-publisher {
+}
+
+.collab-mendeley-published-in {
+}

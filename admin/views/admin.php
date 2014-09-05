@@ -26,7 +26,7 @@ date_default_timezone_set( get_option( 'timezone_string' ) != '' ? get_option( '
 	<form action="options.php" method="post">
 		<?php settings_fields( $this->plugin_slug ); ?>
 		<?php do_settings_sections( $this->plugin_slug ); ?>
-		<?php submit_button('Save keys to DB'); ?>
+		<?php submit_button( 'Save keys to DB' ); ?>
 	</form>
 
 	<h2>Access Token</h2>
@@ -36,7 +36,7 @@ date_default_timezone_set( get_option( 'timezone_string' ) != '' ? get_option( '
 
 	if ( isset( $options['access_token'] ) ) {
 		$access_token_data = $options['access_token']['result'];
-		$expires_at = $options['expire_time'];
+		$expires_at        = $options['expire_time'];
 
 		$html = '<label for="access_token">Access Token:</label>';
 		$html .= '<br/>';
@@ -49,8 +49,8 @@ date_default_timezone_set( get_option( 'timezone_string' ) != '' ? get_option( '
 		$html .= '<input type="hidden" name="action" value="import_publications"/>';
 		$html .= '<input type="submit" value="Import Publications" class="button-primary" />';
 		$html .= '</form>';
-		if (isset($options['last-import'])){
-			$html .= '<p>Last import: '. $options['last-import'] . '</p>';
+		if ( isset( $options['last-import'] ) ) {
+			$html .= '<p>Last import: ' . $options['last-import'] . '</p>';
 		}
 
 
@@ -60,7 +60,7 @@ date_default_timezone_set( get_option( 'timezone_string' ) != '' ? get_option( '
 		$html .= '<form action="' . admin_url( "admin.php" ) . '" method="post">';
 		$html .= '<input type="hidden" name="action" value="request_token"/>';
 		$html .= '<input type="submit" value="Request Token" class="button-primary" ';
-		$html .= ($options['client_id'] == '' || $options['client_secret'] == '') ? "disabled" : "";
+		$html .= ( $options['client_id'] == '' || $options['client_secret'] == '' ) ? "disabled" : "";
 		$html .= '" />';
 		$html .= '</form>';
 	}
