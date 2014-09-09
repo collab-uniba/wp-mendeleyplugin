@@ -224,7 +224,7 @@ class CollabMendeleyPluginAdmin {
 	}
 
 	public function options_callback() {
-		echo '<p class="description">Insert the <code>client ID</code> and <code>client secret</code> you have got from registering this plugin on <a href="http://dev.mendeley.com">Mendeley</a> (see contextual help tab above)</p>';
+		echo '<p class="description">Enter the <code>client ID</code> and <code>client secret</code> you have got from registering this plugin on <a href="http://dev.mendeley.com">Mendeley</a> (see contextual help tab above)</p>';
 	}
 
 	public function client_id_input_callback( $args ) {
@@ -361,10 +361,14 @@ class CollabMendeleyPluginAdmin {
 	}
 
 	public function import_authored_publications() {
-		$options = $this->get_options();
 		$url     = $_SERVER['HTTP_REFERER'];
-		if ( false == $options ) { // if cannot get options
+		$options = $this->get_options();
+		if ( ! isset( $options ) || false == $options ) { // if cannot get options
 			return; // exit and do nothing
+		}
+		if ( time() > $options['expire_time'] ) {
+			$this->refresh_token();
+			$options = $this->get_options();
 		}
 		$token_data_array = $options['access_token']['result'];
 		if ( ! isset( $token_data_array ) ) {
@@ -379,21 +383,6 @@ class CollabMendeleyPluginAdmin {
 			$options['client_secret'],
 			admin_url( 'options-general.php?page=' . $this->plugin_slug )
 		);
-
-		if ( time() > $options['expire_time'] ) {
-			$response                = $client->refresh_access_token( $token_data_array['refresh_token'] );
-			$options['access_token'] = $response;
-			$this->update_options( $options );
-
-			if ( $response['code'] != 200 ) { // if there is a problem with the response
-				// @FIXME: Manage this situation
-				return ''; // return a void string and do no harm...
-			}
-
-			$token_data = $response['result'];
-			$token      = $token_data['access_token'];
-		}
-
 		$client->set_client_access_token( $token );
 		$publications = $client->get_authored_publications();
 		$author_info  = $client->get_account_info();
@@ -406,6 +395,7 @@ class CollabMendeleyPluginAdmin {
 		add_option( $this->plugin_slug . '-cache', $publications );
 
 		wp_redirect( $url );
+		exit;
 
 	}
 

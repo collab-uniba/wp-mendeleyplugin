@@ -291,21 +291,33 @@ class CollabMendeleyPlugin {
 			$return_string = '<' . $titletag . '>' . $content . '</' . $titletag . '>';
 			$return_string .= '<br/>';
 		}
-		$publications      = $this->get_publications();
-		$main_author       = $this->get_account_info();
-		$main_author_array = explode( " ", ucwords( $main_author ) );
+		$publications = $this->get_publications();
+		$main_author  = $this->get_account_info();
+		$author       = explode( " ", ucwords( $main_author['name'] ) );
+
+
 		if ( ! isset( $publications['data'] ) || $publications == false ) {
 			$publications = $this->get_remote_publications();
 		}
-		foreach ( $publications['data'] as $type => $documents ) {
-			usort( $documents, function ( $a, $b ) {
-				return strcmp( $b['year'], $a['year'] );
-			} );
+		$types   = array_keys( $publications['data'] );
+		$weights = $this->get_document_type_weight( $types );
+		asort( $weights );
+		foreach ( $weights as $type => $order ) {
 
-			$formatted_alt = DocumentFormatter::custom_format( $documents, $main_author_array, $this->get_access_token() );
-			if ( isset( $sectiontag ) ) {
+			$documents = $publications['data'][ $type ];
+			usort( $documents, function ( $a, $b ) {
+				return strcmp( $b->year, $a->year );
+			} );
+			//$formatted_alt = DocumentFormatter::custom_format( $documents, $main_author );
+			$formatted_alt = DocumentFormatter::format( $documents, null, null, $author );
+
+
+			if ( $type != 'Conference Proceedings' ) {
+				$return_string .= '<' . $sectiontag . '>' . $type . $this->plural( sizeof( $documents ) ) . '</' . $sectiontag . '><br/>';
+			} else {
 				$return_string .= '<' . $sectiontag . '>' . $type . '</' . $sectiontag . '><br/>';
 			}
+
 
 			$return_string .= $formatted_alt;
 		}
@@ -313,14 +325,39 @@ class CollabMendeleyPlugin {
 		return $return_string;
 	}
 
+	private function get_document_type_weight( $types ) {
+		$weights = array();
+		if ( ! isset( $this->weights ) ) {
+			$this->weights = array(
+				'Journal Article'        => 1,
+				'Magazine Article'       => 2,
+				'Book'                   => 3,
+				'Book Section'           => 4,
+				'Conference Proceedings' => 5
+			);
+		}
+
+		foreach ( $types as $type ) {
+			if ( isset( $this->weights[ $type ] ) ) {
+				$weights[ $type ] = $this->weights[ $type ];
+			} else {
+				$weights[ $type ] = 999;
+			}
+		}
+
+		return $weights;
+
+	}
+
 	private function get_account_info() {
 		$options = get_option( $this->plugin_slug . '-account-info' );
 
-		return $options['main']['name'];
+		return $options['main'];
 	}
 
-	private function get_access_token(){
+	private function get_access_token() {
 		$options = $this->get_options();
+
 		return $options['access-token']['result']['access-token'];
 	}
 
@@ -409,5 +446,13 @@ class CollabMendeleyPlugin {
 	private function update_options( $options ) {
 
 		update_option( $this->plugin_slug, $options );
+	}
+
+	private function plural( $amount, $singular = '', $plural = 's' ) {
+		if ( $amount == 1 ) {
+			return $singular;
+		} else {
+			return $plural;
+		}
 	}
 }

@@ -19,6 +19,8 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
+define('CSS_CLASS_PREFIX','collab-mendeley-');
+
 class citeproc {
 	public $bibliography;
 	public $citation;
@@ -379,7 +381,8 @@ class csl_format extends csl_rendering_element {
 			$div_style = 'style="text-indent: 0px; padding-left: 45px;"';
 		}
 		if ( $div_class || $div_style ) {
-			return '<div ' . $div_class . $div_style . '>' . $prefix . $text . $suffix . '</div>';
+			//todo: replace span with div
+			return '<span ' . $div_class . $div_style . '>' . $prefix . $text . $suffix . '</span>';
 		}
 
 		return $prefix . $text . $suffix;
@@ -1382,7 +1385,7 @@ class csl_group extends csl_format {
 class csl_layout extends csl_format {
 
 	function init_formatting() {
-		$this->div_class = 'csl-entry';
+		$this->div_class =  CSS_CLASS_PREFIX . 'entry csl-entry';
 		parent::init_formatting();
 	}
 
@@ -1454,7 +1457,7 @@ class csl_bibliography extends csl_format {
 	}
 
 	function init_formatting() {
-		$this->div_class = 'csl-bib-body';
+		$this->div_class = CSS_CLASS_PREFIX . 'body csl-bib-body';
 		parent::init_formatting();
 	}
 

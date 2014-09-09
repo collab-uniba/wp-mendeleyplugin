@@ -125,12 +125,12 @@ class MendeleyApi {
 		$url = self::API_ENDPOINT . 'library/documents/authored';
 
 		$response = $this->client->fetch( $url );
-		if (  $response['code'] != 200 ) {
+		if ( $response['code'] != 200 ) {
 			return null;
 		}
 
 		$documents = $response['result'];
-		$data = $this->process_authored_publications( $documents );
+		$data      = $this->process_authored_publications( $documents );
 
 		return $data;
 	}
@@ -143,10 +143,10 @@ class MendeleyApi {
 	}
 
 	public function get_account_info() {
-		$url = self::API_ENDPOINT . 'profiles/info/me';
-		$info = $this->client->fetch($url);
+		$url  = self::API_ENDPOINT . 'profiles/info/me';
+		$info = $this->client->fetch( $url );
 
-		if ($info['code'] == 200){
+		if ( $info['code'] == 200 ) {
 			return $info['result'];
 		}
 
@@ -167,8 +167,8 @@ class MendeleyApi {
 		$this->init();
 	}
 
-	public function fetch($url, $parameters = array()){
-		$this->client->fetch($url, $parameters);
+	public function fetch( $url, $parameters = array() ) {
+		$this->client->fetch( $url, $parameters );
 	}
 
 
@@ -180,22 +180,27 @@ class MendeleyApi {
 
 	private function process_authored_publications( $data ) {
 		$documents_id_array = $data['document_ids'];
-		$pubblications          = array();
+		$pubblications      = array();
 		foreach ( $documents_id_array as $doc_id ) {
-			$response             = $this->get_document( $doc_id );
-			if ($response['code'] != 200 ){
+			$response = $this->get_document( $doc_id );
+			if ( $response['code'] != 200 ) {
 				continue;
 			}
 			$type = $response['result']['type'];
-			//$tmp_doc              = $this->pre_process( $response['result'] );
-			$pubblications['data'][$type][$doc_id] = $response['result'];
+			//$type['weight'] = $this->get_document_type_weight($type['name']);
+			//$pubblications['data'][$type][$doc_id] = $response['result'];
+
+			$tmp_doc                                   = $this->pre_process( $response['result'] );
+			$pubblications['data'][ $type ][ $doc_id ] = $tmp_doc;
+
 		}
 
 
 		return $pubblications;
 	}
 
-	private function get_document_types(){
+
+	/*private function get_document_types(){
 		$url = 'https://api.mendeley.com:443/document_types';
 		$document_types = $this->client->fetch($url);
 		if ($document_types['code'] != 200) {
@@ -206,7 +211,7 @@ class MendeleyApi {
 			array_push($doctypes, $doctype['description']);
 		}
 		return $doctypes;
-	}
+	}*/
 
 	/*
 	 * Preprocessing
