@@ -1,0 +1,47 @@
+/* This stylesheet is used to style the public-facing components of the plugin. */
+
+.collab-mendeley-authored-list {
+    margin: 0 0 1.5em;
+    padding: 0;
+    list-style-type: none;
+}
+
+.collab-mendeley-authored-list li:before {
+    display: inline-block;
+    width: 1em;
+    padding-right: 0.5em;
+    font-weight: bold;
+    text-align: right;
+    content: "[" counter(section, decimal) "] ";
+}
+
+.collab-mendeley-authored-list li {
+    margin: 0;
+    padding: 0 0 0 2em;
+    text-indent: -2em;
+    counter-increment: section;
+}
+
+.collab-mendeley-year {
+    font-weight: bolder;
+}
+
+.collab-mendeley-title {
+    font-style: italic;
+}
+
+.collab-mendeley-author {
+    font-weight: bold;
+}
+
+.collab-mendeley-doi {
+    font-style: italic;
+}
+
+.collab-mendeley-doi a {
+    text-decoration: none;
+}
+
+.collab-mendeley-entry {
+
+}

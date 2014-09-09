@@ -11,3 +11,6 @@ sitemap.xml
 wp-content/cache/
 wp-content/backups/
 sitemap.xml.gz
+.idea/
+admin/includes/composer.lock
+admin/includes/vendor/
