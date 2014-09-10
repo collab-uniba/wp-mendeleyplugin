@@ -20,7 +20,7 @@ date_default_timezone_set( get_option( 'timezone_string' ) != '' ? get_option( '
 	<h2><?php echo esc_html( get_admin_page_title() ); ?></h2>
 
 
-	<label for="callback-url"><b>Redirect url</b> (<em>enter this when asked for a redirect URL</em>)</label><br/>
+	<label for="callback-url"><b>Redirect url</b> (<em>Register a new app at dev.mendely.com and enter this when asked for a redirect URL</em>)</label><br/>
 	<input type="text" value="<?php echo $this->callback_url; ?>" readonly size="85"/>
 
 	<form action="options.php" method="post">
