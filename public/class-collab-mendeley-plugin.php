@@ -70,6 +70,8 @@ class CollabMendeleyPlugin {
 		add_action( 'init', array( $this, 'load_plugin_textdomain' ) );
 		add_action( 'init', array( $this, 'register_shortcode' ) );
 
+		add_action( 'mendeley_download', array( $this, 'download_file' ) );
+
 		// Activate plugin when new blog is added
 		add_action( 'wpmu_new_blog', array( $this, 'activate_new_site' ) );
 
@@ -77,6 +79,20 @@ class CollabMendeleyPlugin {
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_styles' ) );
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
 
+	}
+
+	public function download_file(){
+		/*
+		$curl = curl_init("https://api.mendeley.com:443/files/".$idfile);
+  
+		curl_setopt( $curl, CURLOPT_RETURNTRANSFER, true);
+		curl_setopt($curl, CURLOPT_VERBOSE, true);
+		curl_setopt($curl, CURLOPT_HEADER, true);
+		curl_setopt($curl, CURLOPT_HTTPHEADER, array("Authorization: Bearer MSwxNDMyNTkyMTIxNTgxLDMxNzQwODg1MSwxODQxLGFsbCwsb212eTM1ckZLTThKR3BDSG9jQnVKd1VEUjFv"));
+		$auth = curl_exec($curl);
+		echo $auth;
+		*/
+		echo "TEST ACTION";
 	}
 
 	/**
@@ -293,8 +309,10 @@ class CollabMendeleyPlugin {
 		}
 		$publications = $this->get_publications();
 		$main_author  = $this->get_account_info();
-		$author       = explode( " ", ucwords( $main_author['name'] ) );
+		//print_r($main_author); echo $main_author;
 
+		$author       = explode( " ", ucwords( $main_author['display_name'] ) );
+		
 
 		if ( ! isset( $publications['data'] ) || $publications == false ) {
 			$publications = $this->get_remote_publications();
@@ -308,8 +326,9 @@ class CollabMendeleyPlugin {
 			usort( $documents, function ( $a, $b ) {
 				return strcmp( $b->year, $a->year );
 			} );
-			//$formatted_alt = DocumentFormatter::custom_format( $documents, $main_author );
-			$formatted_alt = DocumentFormatter::format( $documents, null, null, $author );
+
+			$formatted_alt = DocumentFormatter::custom_format( $documents, $author );
+			//$formatted_alt = DocumentFormatter::format( $documents, null, null, $author );
 
 
 			if ( $type != 'Conference Proceedings' ) {
@@ -350,27 +369,28 @@ class CollabMendeleyPlugin {
 	}
 
 	private function get_account_info() {
-		$options = get_option( $this->plugin_slug . '-account-info' );
-
-		return $options['main'];
+		$info = get_option($this->plugin_slug . '-account-info');
+		
+		return $info;
 	}
 
 	private function get_access_token() {
 		$options = $this->get_options();
 
-		return $options['access-token']['result']['access-token'];
+		return $options['access_token']['result']['access_token'];
 	}
 
 	private function get_publications() {
 		// get the stored options
 		$options = $this->get_options();
+
+		
 		// if publications in cache
 		if ( isset( $options['cache'] ) ) {
 			if ( $options['cache'] == true ) // return the cached publications
-			{
+			{ 
 				return $this->get_cached_publications();
 			}
-
 			return $this->get_remote_publications();
 		}
 
@@ -378,13 +398,14 @@ class CollabMendeleyPlugin {
 	}
 
 	private function get_cached_publications() {
+		//$publications = get_option( $this->plugin_slug . '-cache' );
 		$publications = get_option( $this->plugin_slug . '-cache' );
 
 		return $publications;
 	}
 
 	private function get_remote_publications() {
-
+ 
 		$options = $this->get_options();
 		if ( false == $options ) { // if cannot get options
 			return; // exit and do nothing
@@ -418,12 +439,13 @@ class CollabMendeleyPlugin {
 			$token      = $token_data['access_token'];
 		}
 
+
 		$client->set_client_access_token( $token );
 		$publications = $client->get_authored_publications();
 		// set the cache
-
+		//print_r($publications);
 		$options['account-info'] = $client->get_account_info();
-		$options['cache']        = true;
+		$options['cache']        = false;  // true, forzato a false
 		$this->update_options( $options );
 		add_option( $this->plugin_slug . '-cache', $publications );
 

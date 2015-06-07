@@ -26,6 +26,10 @@ class DocumentFormatter {
 		return self::$instance;
 	}
 
+
+
+/*  NOT USED
+
 	public static function format( $documents_array, $cls_path = false, $mode = false, $author = false ) {
 
 		if (isset($cls_path) && ! false == $cls_path ) {
@@ -39,16 +43,14 @@ class DocumentFormatter {
 		foreach ( $documents_array as $document ) {
 			$render .= '<li>';
 			foreach ( $document->author as $auth ) {
-				/*if (self::same_author($auth, $author)){
-					$render .= ' <strong>'. $auth['given'] . ' ' . $auth['family'] . '</strong>';
-				} else {
-					$render .= ' ' . $auth['given'] . ' ' . $auth['family'];
-				}*/
+				
 
 				$render .= ' ' . $auth['given'] . ' ' . $auth['family'];
 				$render .= ', ';
 			}
 
+
+		
 			if ( ! false == $mode ) {
 				$render .= $cp->render( $document, $mode );
 			} else {
@@ -65,47 +67,54 @@ class DocumentFormatter {
 
 		return $render;
 	}
+*/
 
 	public static function custom_format( $documents, $main_author ) {
-		$formatted              = '<ol class="collab-mendeley-authored-list">';
-		$main_author_name_array = explode( " ", ucwords( $main_author['name'] ) );
-		$main_author_forename   = $main_author_name_array[0];
-		$main_author_surname    = $main_author_name_array[1];
-		$profile_id             = $main_author['profile_id'];
+		$formatted                = '<ol class="collab-mendeley-authored-list">';
+		$main_author_first_name   = $main_author[0];
+		$main_author_last_name    = $main_author[1];
+		
+		$count = 0;
 		foreach ( $documents as $doc ) {
-			$title = $doc['title'];
-			$html  = '<li>(<span class="collab-mendeley-year">' . $doc['year'] . '</span>) ';
-			foreach ( $doc['authors'] as $author ) {
-				$acronym = self::make_acronym( $author['forename'] );
-				if ( ( $author['surname'] == $main_author_surname ) && ( $acronym == self::make_acronym( $main_author_forename ) ) ) {
-					$html .= '<span class="collab-mendeley-author">' . $acronym . ' ' . $author['surname'] . '</span>, ';
+			//print_r($doc->author);
+			$profile_id             = $doc->profile_id;
+			$title = $doc->title;
+			$html  = '<li>';
+			
+			if(isset($doc->year)) $html.='(<span class="collab-mendeley-year">' . $doc->year . '</span>) ';
+
+			
+			foreach ( $doc->author as $author ) {
+				//$acronym = self::make_acronym( $author );
+				
+				
+				if ( ( $author['given'] == $main_author_last_name ) && ( $acronym == self::make_acronym( $main_author_first_name ) ) ) {
+					$html .= '<span class="collab-mendeley-author">' . $author['given'] . ' ' . $author['family'] . '</span>, ';
 				} else {
-					$html .= $acronym . ' ' . $author['surname'] . ', ';
+				
+					$html .= $author['given'] . ' ' . $author['family'] . ', ';
 				}
 			}
 
-			// A Planning Poker Tool for Supporting Collaborative Estimation in Distributed Agile Development
-			// http://www.mendeley.com/download/personal/12946271/5511616284/94a178314e0e005156697b065f85c8f8f6b6c384/dl.pdf
+			
+			$html .= '<form method="post" name="down'.$count.'" target="_blank">';
+			$html .= '<input type="hidden" name="action" value="mendeley_download"/>';
+			$html .= '<input type="hidden" name="idfile" value="'.$doc->file_info[0]['id'].'"/>';
+			$html .= '<a class="collab-mendeley-title" href="javascript:document.down'.$count.'.submit();" rel="nofollow">' . $doc->title . '</a>, ';
+			$html .= '</form>';
+			$count++;
 
-			/*if (isset($doc['files']) && !empty($doc['files'])){
-				$file_hash = $doc['files'];
-				$url = self::get_file_url($profile_id, $doc['id'], $file_hash[0]['file_hash']);
-				$html .= '<a class="collab-mendeley-title" href="' . $url . '" target="_blank" rel="nofollow">' . $doc['title'] . '</a>, ';
-			} else {*/
-			$html .= '<a class="collab-mendeley-title" href="' . $doc['mendeley_url'] . '" target="_blank" rel="nofollow">' . $doc['title'] . '</a>, ';
-			//}
-
-			if ( isset( $doc['publisher'] ) ) {
-				$html .= '<span class="collab-mendeley-publisher">(' . $doc['publisher'] . '</span>),';
+			if ( isset( $doc->publisher ) ) {
+				$html .= '<span class="collab-mendeley-publisher">(' . $doc->publisher . '</span>),';
 			}
 
-			if ( isset( $doc['published_in'] ) ) {
-				$html .= ' <span class="collab-mendeley-published-in">' . $doc['published_in'] . '</span>,';
+			if ( isset( $doc->published_in ) ) {
+				$html .= ' <span class="collab-mendeley-published-in">' . $doc->published_in . '</span>,';
 			}
 
 
-			if ( isset( $doc['identifiers'] ) ) {
-				foreach ( $doc['identifiers'] as $identifier => $value ) {
+			if ( isset( $doc->identifiers ) ) {
+				foreach ( $doc->identifiers as $identifier => $value ) {
 					if ( $identifier == 'doi' ) {
 						$html .= ' <span class="collab-mendeley-identifiers"> DOI:</span> <a href="http://dx.doi.org/' . $value . '" target="_blank" rel="nofollow">' . $value . '</a>';
 					} else {
@@ -125,14 +134,6 @@ class DocumentFormatter {
 		return $formatted;
 	}
 
-	/*private static function same_author($first, $second){
-		if (($first['given'] == $second[0]) && ($first['family'] == $second[1])) {
-			return true;
-		}else{
-			return false;
-		}
-	}*/
-
 	private static function make_acronym( $text ) {
 		$words   = explode( " ", $text );
 		$acronym = "";
@@ -144,14 +145,5 @@ class DocumentFormatter {
 		return $acronym;
 	}
 
-	/*private function get_file_url( $profile_id, $document_id, $file_hash ) {
-		$url = 'http://www.mendeley.com/download/personal/';
-		$url .= $profile_id . '/';
-		$url .= $document_id . '/';
-		$url .= $file_hash . '/dl.pdf';
-
-		return $url;
-	}*/
-
-
+	
 } 

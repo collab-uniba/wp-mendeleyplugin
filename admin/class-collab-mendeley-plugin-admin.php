@@ -387,7 +387,7 @@ class CollabMendeleyPluginAdmin {
 		$publications = $client->get_authored_publications();
 		$author_info  = $client->get_account_info();
 		// set the cache
-		$options['cache'] = true;
+		//$options['cache'] = true;  DISABILITATO...vedi 5 righe sotto
 		add_option( $this->plugin_slug . '-account-info', $author_info );
 		$dt                     = new DateTime();
 		$options['last-import'] = $dt->format( 'd-m-Y H:i:s' );
@@ -400,9 +400,11 @@ class CollabMendeleyPluginAdmin {
 	}
 
 	public function store_access_token( $auth_code ) {
+
 		$options      = $this->get_options();
 		$client       = $this->set_up_client( $options );
 		$access_token = $client->get_access_token( $auth_code );
+		//print_r($client);
 		if ( $access_token['code'] === 200 ) {
 			$options['access_token'] = $access_token;
 			$access_token_data       = $options['access_token']['result'];
@@ -411,7 +413,11 @@ class CollabMendeleyPluginAdmin {
 			$options['expire_time']  = $expire_time;
 			$options['et_humanized'] = $expire_time_humanized;
 			$this->update_options( $options );
-		}
+		}/*else{
+			echo "Debug info:<code>";
+			print_r($access_token);	
+			echo "</code>";
+		}*/
 
 	}
 

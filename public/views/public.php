@@ -11,6 +11,5 @@
  * @link      http://example.com
  * @copyright 2014 --
  */
-?>
 
-<!-- This file is used to markup the public facing aspect of the plugin. -->
+?>

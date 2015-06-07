@@ -9,15 +9,15 @@
 if ( ! class_exists( "Client" ) ) {
 	include_once 'vendor/autoload.php';
 }
-//define( 'AUTHORIZE_ENDPOINT', 'https://mix.mendeley.com/oauth/authorize' );
-//define( 'TOKEN_ENDPOINT', 'https://mix.mendeley.com/oauth/token' );
-//define( 'API_ENDPOINT', 'https://mix.mendeley.com/' );
+//define( 'AUTHORIZE_ENDPOINT', 'https://api.mendeley.com/oauth/authorize' );
+//define( 'TOKEN_ENDPOINT', 'https://api.mendeley.com/oauth/token' );
+//define( 'API_ENDPOINT', 'https://api.mendeley.com/' );
 
 class MendeleyApi {
 
-	const AUTHORIZE_ENDPOINT = 'https://mix.mendeley.com/oauth/authorize';
-	const TOKEN_ENDPOINT = 'https://mix.mendeley.com/oauth/token';
-	const API_ENDPOINT = 'https://api-oauth2.mendeley.com/oapi/';
+	const AUTHORIZE_ENDPOINT = 'https://api.mendeley.com/oauth/authorize';
+	const TOKEN_ENDPOINT = 'https://api.mendeley.com/oauth/token';
+	const API_ENDPOINT = 'https://api.mendeley.com/';
 
 
 	protected $client = null;
@@ -97,15 +97,17 @@ class MendeleyApi {
 
 	public function start_authorization_flow() {
 		$url = $this->client->getAuthenticationUrl( self::AUTHORIZE_ENDPOINT, $this->callback_url, array( 'scope' => 'all' ) );
+		// redirige sul sito mix.mendeley.com/oauth
 		wp_redirect( $url );
 		exit();
 	}
 
 	public function get_access_token( $auth_code ) {
 		// set request parameters
+		
 		$params   = array( 'code' => $auth_code, 'redirect_uri' => $this->callback_url );
 		$response = $this->client->getAccessToken( self::TOKEN_ENDPOINT, 'authorization_code', $params );
-
+		
 		return $response;
 	}
 
@@ -122,7 +124,7 @@ class MendeleyApi {
 
 	public function get_authored_publications() {
 
-		$url = self::API_ENDPOINT . 'library/documents/authored';
+		$url = self::API_ENDPOINT . 'documents';
 
 		$response = $this->client->fetch( $url );
 		if ( $response['code'] != 200 ) {
@@ -136,16 +138,16 @@ class MendeleyApi {
 	}
 
 	public function get_document( $id ) {
-		$url      = self::API_ENDPOINT . 'library/documents/' . $id;
+		$url      = self::API_ENDPOINT . 'documents/' . $id;
 		$document = $this->client->fetch( $url );
 
 		return $document;
 	}
 
 	public function get_account_info() {
-		$url  = self::API_ENDPOINT . 'profiles/info/me';
+		$url  = self::API_ENDPOINT . 'profiles/me';
 		$info = $this->client->fetch( $url );
-
+		
 		if ( $info['code'] == 200 ) {
 			return $info['result'];
 		}
@@ -172,46 +174,42 @@ class MendeleyApi {
 	}
 
 
+	public function get_file_info( $doc_id ) {
+
+		$url      = self::API_ENDPOINT . 'files';
+		$file = $this->client->fetch( $url, array('document_id'=> $doc_id), 'GET');
+		
+
+		if ( $file['code'] = 200 ) {
+			return $file['result'];
+		}
+		
+
+
+		return null;
+	}
+
 	/*-------------------------------------------------------------------------------
 	 *
 	 * Private Functions/Utilities
 	 *
 	 *------------------------------------------------------------------------------*/
 
-	private function process_authored_publications( $data ) {
-		$documents_id_array = $data['document_ids'];
+	private function process_authored_publications( $documents ) {
+		//$documents_id_array = $data['document_ids'];
 		$pubblications      = array();
-		foreach ( $documents_id_array as $doc_id ) {
-			$response = $this->get_document( $doc_id );
-			if ( $response['code'] != 200 ) {
-				continue;
-			}
-			$type = $response['result']['type'];
-			//$type['weight'] = $this->get_document_type_weight($type['name']);
-			//$pubblications['data'][$type][$doc_id] = $response['result'];
-
-			$tmp_doc                                   = $this->pre_process( $response['result'] );
-			$pubblications['data'][ $type ][ $doc_id ] = $tmp_doc;
-
+		$count = 0;
+		foreach ( $documents as $doc ) {
+			
+			$tmp_doc                                   		 = $this->pre_process( $doc );
+			$pubblications['data'][ $doc['type'] ][ $count ] = $tmp_doc;
+			$count++;
 		}
-
 
 		return $pubblications;
 	}
 
-
-	/*private function get_document_types(){
-		$url = 'https://api.mendeley.com:443/document_types';
-		$document_types = $this->client->fetch($url);
-		if ($document_types['code'] != 200) {
-			return null;
-		}
-		$doctypes = array();
-		foreach ($document_types['result'] as $doctype){
-			array_push($doctypes, $doctype['description']);
-		}
-		return $doctypes;
-	}*/
+	
 
 	/*
 	 * Preprocessing
@@ -222,8 +220,8 @@ class MendeleyApi {
 		}
 		$tmp_names = array();
 		foreach ( $names as $rank => $name ) {
-			$tmp_names[ $rank ]['given']  = $name['forename'];
-			$tmp_names[ $rank ]['family'] = $name['surname'];
+			$tmp_names[ $rank ]['given']  = $name['first_name'];  	// forename
+			$tmp_names[ $rank ]['family'] = $name['last_name'];		// surname
 		}
 
 		return $tmp_names;
@@ -231,20 +229,27 @@ class MendeleyApi {
 
 	private function mendeleyType2CiteProcType( $type ) {
 		if ( ! isset( $this->type_map ) ) {
+			/*
+			['journal' or 'book' or 'generic' or 'book_section' or 'conference_proceedings' or 'working_paper' or 'report' or 'web_page' or 
+			 'thesis' or 'magazine_article' or 'statute' or 'patent' or 'newspaper_article' or 'computer_program' or 'hearing' or 
+			 'television_broadcast' or 'encyclopedia_article' or 'case' or 'film' or 'bill']
+			*/
 			$this->type_map = array(
-				'Book'                   => 'book',
-				'Book Section'           => 'chapter',
-				'Journal Article'        => 'article-journal',
-				'Magazine Article'       => 'article-magazine',
-				'Newspaper Article'      => 'article-newspaper',
-				'Conference Proceedings' => 'paper-conference',
-				'Report'                 => 'report',
-				'Thesis'                 => 'thesis',
-				'Case'                   => 'legal_case',
-				'Encyclopedia Article'   => 'entry-encyclopedia',
-				'Web Page'               => 'webpage',
-				'Working Paper'          => 'report',
-				'Generic'                => 'chapter',
+				'book'                   => 'book',
+				'film'                   => 'book',
+				'bill'                   => 'bill',
+				'book_section'           => 'chapter',
+				'magazine_article'       => 'article-magazine',
+				'newspaper_article'      => 'article-newspaper',
+				'conference_proceedings' => 'paper-conference',
+				'report'                 => 'report',
+				'thesis'                 => 'thesis',
+				'case'                   => 'legal_case',
+				'encyclopedia_article'   => 'entry-encyclopedia',
+				'web_page'               => 'webpage',
+				'working_paper'          => 'report',
+				'generic'                => 'chapter',
+				'journal'                => 'article-journal'
 			);
 		}
 
@@ -254,10 +259,20 @@ class MendeleyApi {
 	private function pre_process( $doc ) {
 		// stdClass for showing document
 		$docdata         = new stdClass;
+		
+		$docdata->document_id  = $doc['id'];
+
+
+		$docdata->file_info	   = $this->get_file_info($doc['id']);  // necessario per visualizzare\download ecc ecc
+		
+
+		$docdata->profile_id   = $doc['profile_id'];
+		$docdata->group_id     = $doc['group_id'];
+		
 		$docdata->type   = $this->mendeleyType2CiteProcType( $doc['type'] );
 		$docdata->author = $this->mendeleyNames2CiteProcNames( $doc['authors'] );
 		$docdata->editor = $this->mendeleyNames2CiteProcNames( $doc['editors'] );
-		$docdata->issued = (object) array( 'date-parts' => array( array( $doc['year'] ) ) );
+		// DEPRECATED $docdata->issued = (object) array( 'date-parts' => array( array( $doc['year'] ) ) );
 		$docdata->title  = $doc['title'];
 		$docdata->year   = $doc['year'];
 		if ( isset( $doc['published_in'] ) ) {
