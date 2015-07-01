@@ -40,6 +40,7 @@ date_default_timezone_set( get_option( 'timezone_string' ) != '' ? get_option( '
 
 		$html = '<label for="access_token">Access Token:</label>';
 		$html .= '<br/>';
+		$html .= '<p><em>Import Publications button, save on local cache documents details from your <b>Mendeley account</b></em></p>';
 		$html .= '<input id="access_token" type="text" readonly value="' . $access_token_data['access_token'] . '" size="85" />';
 		$html .= '<br/>';
 		$html .= '<p class="' . ( ( time() < $expires_at ) ? "token-updated" : "token-expired" ) . '"><b>Expire time: </b>' . date( 'd-n-Y H:i:s', $expires_at ) . '</p>';

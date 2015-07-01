@@ -300,6 +300,28 @@ class CollabMendeleyPlugin {
 		add_shortcode( 'mendeley', array( $this, 'authored_publications' ) );
 	}
 
+	private function translate_type($type){
+		$this->type_map = array(
+				'book'                   => 'Books and Book Chapters',
+				'film'                   => 'Film',
+				'bill'                   => 'Bill',
+				'book_section'           => 'Books and Book Chapters',
+				'magazine_article'       => 'Article Magazine',
+				'newspaper_article'      => 'Article Newspaper',
+				'conference_proceedings' => 'International Conferences and Workshops',
+				'report'                 => 'Report',
+				'thesis'                 => 'Thesis',
+				'case'                   => 'Legal Case',
+				'encyclopedia_article'   => 'Encyclopedia',
+				'web_page'               => 'Web page',
+				'working_paper'          => 'Journals and Magazines',
+				'generic'                => 'Journals and Magazines',
+				'journal'                => 'Journals and Magazines'
+			);
+		return $this->type_map[$type];
+	}
+
+
 	public function authored_publications( $atts, $content = null ) {
 		$titletag   = $atts['titletag'];
 		$sectiontag = $atts['sectiontag'];
@@ -312,12 +334,14 @@ class CollabMendeleyPlugin {
 		//print_r($main_author); echo $main_author;
 
 		$author       = explode( " ", ucwords( $main_author['display_name'] ) );
-		
 
 		if ( ! isset( $publications['data'] ) || $publications == false ) {
 			$publications = $this->get_remote_publications();
 		}
+
+	
 		$types   = array_keys( $publications['data'] );
+		
 		$weights = $this->get_document_type_weight( $types );
 		asort( $weights );
 		foreach ( $weights as $type => $order ) {
@@ -331,11 +355,11 @@ class CollabMendeleyPlugin {
 			//$formatted_alt = DocumentFormatter::format( $documents, null, null, $author );
 
 
-			if ( $type != 'Conference Proceedings' ) {
+			/*if ( $type != 'Conference Proceedings' ) {
 				$return_string .= '<' . $sectiontag . '>' . $type . $this->plural( sizeof( $documents ) ) . '</' . $sectiontag . '><br/>';
-			} else {
-				$return_string .= '<' . $sectiontag . '>' . $type . '</' . $sectiontag . '><br/>';
-			}
+			} else {*/
+				$return_string .= '<' . $sectiontag . '>' . $this->translate_type($type) . '</' . $sectiontag . '><br/>';
+			//}
 
 
 			$return_string .= $formatted_alt;
@@ -431,8 +455,7 @@ class CollabMendeleyPlugin {
 			$this->update_options( $options );
 
 			if ( $response['code'] != 200 ) { // if there is a problem with the response
-				// @FIXME: Manage this situation
-				return ''; // return a void string and do no harm...
+				return $response['message']; // return a void string and do no harm...
 			}
 
 			$token_data = $response['result'];
@@ -441,7 +464,7 @@ class CollabMendeleyPlugin {
 
 
 		$client->set_client_access_token( $token );
-		$publications = $client->get_authored_publications();
+		$publications = $client->get_authored_publications($client->get_account_info()['id']);
 		// set the cache
 		//print_r($publications);
 		$options['account-info'] = $client->get_account_info();

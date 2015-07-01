@@ -75,9 +75,11 @@ class DocumentFormatter {
 		$main_author_last_name    = $main_author[1];
 		
 		$count = 0;
+		$trovato = false;
 		foreach ( $documents as $doc ) {
 			//print_r($doc->author);
-			$profile_id             = $doc->profile_id;
+			//$profile_id             = $doc->profile_id;
+			$trovato = false;
 			$title = $doc->title;
 			$html  = '<li>';
 			
@@ -85,17 +87,18 @@ class DocumentFormatter {
 
 			
 			foreach ( $doc->author as $author ) {
-				//$acronym = self::make_acronym( $author );
-				
-				
-				if ( ( $author['given'] == $main_author_last_name ) && ( $acronym == self::make_acronym( $main_author_first_name ) ) ) {
+				$acronym = self::make_acronym( $author );
+
+				echo $acronym;
+
+				if ( $author['given'] == $main_author_first_name && $author['family'] == $main_author_last_name ) {
 					$html .= '<span class="collab-mendeley-author">' . $author['given'] . ' ' . $author['family'] . '</span>, ';
+					$trovato = true;
 				} else {
-				
 					$html .= $author['given'] . ' ' . $author['family'] . ', ';
 				}
 			}
-
+			if(!$trovato) continue;
 			
 			$html .= '<form method="post" name="down'.$count.'" target="_blank">';
 			$html .= '<input type="hidden" name="action" value="mendeley_download"/>';
@@ -105,7 +108,7 @@ class DocumentFormatter {
 			$count++;
 
 			if ( isset( $doc->publisher ) ) {
-				$html .= '<span class="collab-mendeley-publisher">(' . $doc->publisher . '</span>),';
+				$html .= '<span class="collab-mendeley-publisher">(' . $doc->publisher . ')</span>,';
 			}
 
 			if ( isset( $doc->published_in ) ) {

@@ -341,6 +341,7 @@ class CollabMendeleyPluginAdmin {
 					<li>Insert client id and secret in the form below and store them to db</li>
 					<li>Click on request token</li>
 				</ol>
+				<p><em>Once you have token, Import Publications button, save on local cache documents details from your <b>Mendeley account</b></em></p>
 			</p>
 		';
 

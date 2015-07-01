@@ -122,11 +122,12 @@ class MendeleyApi {
 		return $response;
 	}
 
-	public function get_authored_publications() {
+	public function get_authored_publications($id_profile) {
 
 		$url = self::API_ENDPOINT . 'documents';
 
-		$response = $this->client->fetch( $url );
+		// $response = $this->client->fetch( $url );
+		$response = $this->client->fetch( $url, array('id_profile'=> $id_profile), 'GET' );
 		if ( $response['code'] != 200 ) {
 			return null;
 		}
@@ -249,7 +250,7 @@ class MendeleyApi {
 				'web_page'               => 'webpage',
 				'working_paper'          => 'report',
 				'generic'                => 'chapter',
-				'journal'                => 'article-journal'
+				'journal'                => 'Giornali'
 			);
 		}
 
