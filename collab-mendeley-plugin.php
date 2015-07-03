@@ -45,6 +45,7 @@ register_deactivation_hook( __FILE__, array( 'CollabMendeleyPlugin', 'deactivate
 
 add_action( 'plugins_loaded', array( 'CollabMendeleyPlugin', 'get_instance' ) );
 
+
 /*----------------------------------------------------------------------------*
  * Dashboard and Administrative Functionality
  *----------------------------------------------------------------------------*/
@@ -79,9 +80,26 @@ if ( is_admin() && ( ! defined( 'DOING_AJAX' ) || ! DOING_AJAX ) ) {
 require_once( plugin_dir_path( __FILE__ ) . 'includes/class-mendeley-api.php' );
 add_action( 'plugins_loaded', array( 'MendeleyApi', 'get_instance' ) );
 
+
 /*----------------------------------------------------------------------------*
  * Documents Formatting (using CiteProc)
  *----------------------------------------------------------------------------*/
 require_once( plugin_dir_path( __FILE__ ) . 'includes/class-document-formatter.php' );
 add_action( 'plugins_loaded', array( 'DocumentFormatter', 'get_instance' ) );
 
+if($_POST['action']=='mendeley_download'){
+	$curl = curl_init("https://api.mendeley.com:443/files/".$_POST['idfile']);
+  	$r = get_option( 'collab-mendeley-plugin' );
+
+	curl_setopt( $curl, CURLOPT_RETURNTRANSFER, true);
+	curl_setopt($curl, CURLOPT_VERBOSE, true);
+	curl_setopt($curl, CURLOPT_HEADER, true);
+	curl_setopt($curl, CURLOPT_HTTPHEADER, array("Authorization: Bearer ".$r['access_token']['result']['access_token']));
+	$auth = curl_exec($curl);
+	$donwload = curl_getinfo($curl);
+	
+	
+	header('Location: '.$donwload['redirect_url']);
+    die;
+	
+}
