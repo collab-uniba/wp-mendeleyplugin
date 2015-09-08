@@ -3,7 +3,7 @@
  * Collab Mendeley Plugin
  *
  * @package   CollabMendeleyPluginAdmin
- * @author    Davide Parisi <davideparisi@gmail.com>
+ * @author    Davide Parisi <davideparisi@gmail.com>, Gabriele Cianciaruso <infogabry@gmail.com>
  * @license   GPL-2.0+
  * @link      http://example.com
  * @copyright 2014 --
@@ -17,7 +17,7 @@
  * functionality, then refer to `class-collab-mendeley-plugin.php`
  *
  * @package CollabMendeleyPluginAdmin
- * @author  Davide Parisi <davideparisi@gmail.com>
+ * @author  Davide Parisi <davideparisi@gmail.com>, Gabriele Cianciaruso <infogabry@gmail.com>
  */
 /*if ( ! class_exists( "MendeleyApi" ) ) {
 	require_once plugin_dir_path( __DIR__ ) . "includes/class-mendeley-api.php";
@@ -99,9 +99,10 @@ class CollabMendeleyPluginAdmin {
 		$plugin             = CollabMendeleyPlugin::get_instance();
 		$this->plugin_slug  = $plugin->get_plugin_slug();
 		$this->callback_url = admin_url( 'options-general.php?page=' . $this->plugin_slug );
-		$this->options      = $this->get_options();
-		$actoken            = $this->option['access-token'];
-		if ( isset( $actoken ) && $actoken ) {
+		$options      		= $this->get_options();
+		$actoken            = $options['access-token'];
+		
+		if ( empty( $actoken ) ) {
 			$this->check_access_token();
 		}
 	}
@@ -388,7 +389,7 @@ class CollabMendeleyPluginAdmin {
 		$publications = $client->get_authored_publications();
 		$author_info  = $client->get_account_info();
 		// set the cache
-		//$options['cache'] = true;  DISABILITATO...vedi 5 righe sotto
+		//$options['cache'] = true;  // DISABILITATO...vedi 5 righe sotto
 		add_option( $this->plugin_slug . '-account-info', $author_info );
 		$dt                     = new DateTime();
 		$options['last-import'] = $dt->format( 'd-m-Y H:i:s' );
@@ -423,9 +424,8 @@ class CollabMendeleyPluginAdmin {
 	}
 
 	public function check_access_token() {
-		$options           = $this->get_options();
-		$access_token_data = $options['access_token']['result'];
-
+		$access_token_data = $this->get_options();
+		
 		if ( time() > $access_token_data['expire_time'] ) {
 			$this->refresh_token();
 		}
@@ -442,7 +442,9 @@ class CollabMendeleyPluginAdmin {
 		$options['access_token'] = $new_token;
 		$access_token_data       = $options['access_token']['result'];
 		$expire_time             = ( time() + $access_token_data['expires_in'] );
+		$expire_time_humanized   = date( 'd-n-Y H:i:s', $expire_time );
 		$options['expire_time']  = $expire_time;
+		$options['et_humanized'] = $expire_time_humanized;
 		$this->update_options( $options );
 	}
 
@@ -482,7 +484,6 @@ class CollabMendeleyPluginAdmin {
 	 * Private Functions/utilities
 	 *
 	 -----------------------------------------------------------------------------*/
-
 
 	/**
 	 * Update options array with db data (if present)

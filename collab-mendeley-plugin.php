@@ -6,7 +6,7 @@
  * also follow WordPress Coding Standards and PHP best practices.
  *
  * @package   CollabMendeleyPlugin
- * @author    Davide Parisi <davideparisi@gmail.com>, Nicola Musicco <nicolamc@hotmail.it>
+ * @author    Davide Parisi <davideparisi@gmail.com>, Nicola Musicco <nicolamc@hotmail.it>, Gabriele Cianciaruso <infogabry@gmail.com>
  * @license   MIT
  *
  * @wordpress-plugin
@@ -14,7 +14,7 @@
  * Plugin URI:        https://github.com/collab-uniba/wp-mendeleyplugin
  * Description:       Collab Mendeley Plugin
  * Version:           2.0.0
- * Author:            Davide Parisi, Nicola Musicco
+ * Author:            Davide Parisi, Nicola Musicco, Gabriele Cianciaruso
  * Author URI:        https://github.com/collab-uniba/wp-mendeleyplugin
  * Text Domain:       collab-mendeley-plugin-locale
  * License:           MIT

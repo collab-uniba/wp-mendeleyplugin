@@ -3,7 +3,7 @@
  * Collab Mendeley Plugin
  *
  * @package   CollabMendeleyPlugin
- * @author    Davide Parisi <davideparisi@gmail.com>
+ * @author    Davide Parisi <davideparisi@gmail.com>, Gabriele Cianciaruso <infogabry@gmail.com>
  * @license   GPL-2.0+
  * @link      http://example.com
  * @copyright 2014 --
@@ -17,7 +17,7 @@
  * functionality, then refer to `class-collab-mendeley-plugin-admin.php`
  *
  * @package CollabMendeleyPlugin
- * @author  Davide Parisi <davideparisi@gmail.com>
+ * @author  Davide Parisi <davideparisi@gmail.com>, Gabriele Cianciaruso <infogabry@gmail.com>
  *
  */
 
@@ -81,20 +81,7 @@ class CollabMendeleyPlugin {
 
 	}
 
-	public function download_file(){
-		/*
-		$curl = curl_init("https://api.mendeley.com:443/files/".$idfile);
-  
-		curl_setopt( $curl, CURLOPT_RETURNTRANSFER, true);
-		curl_setopt($curl, CURLOPT_VERBOSE, true);
-		curl_setopt($curl, CURLOPT_HEADER, true);
-		curl_setopt($curl, CURLOPT_HTTPHEADER, array("Authorization: Bearer MSwxNDMyNTkyMTIxNTgxLDMxNzQwODg1MSwxODQxLGFsbCwsb212eTM1ckZLTThKR3BDSG9jQnVKd1VEUjFv"));
-		$auth = curl_exec($curl);
-		echo $auth;
-		*/
-		echo "TEST ACTION";
-	}
-
+	
 	/**
 	 * Return the plugin slug.
 	 *
