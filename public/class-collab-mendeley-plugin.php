@@ -451,7 +451,8 @@ class CollabMendeleyPlugin {
 
 
 		$client->set_client_access_token( $token );
-		$publications = $client->get_authored_publications($client->get_account_info()['id']);
+		$acc_info = $client->get_account_info();
+		$publications = $client->get_authored_publications($acc_info['id']);
 		// set the cache
 		//print_r($publications);
 		$options['account-info'] = $client->get_account_info();

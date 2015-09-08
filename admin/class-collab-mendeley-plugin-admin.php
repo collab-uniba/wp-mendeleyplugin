@@ -102,7 +102,7 @@ class CollabMendeleyPluginAdmin {
 		$options      		= $this->get_options();
 		$actoken            = $options['access-token'];
 		
-		if ( empty( $actoken ) ) {
+		if ( !empty( $actoken ) ) {
 			$this->check_access_token();
 		}
 	}
