@@ -89,8 +89,7 @@ class DocumentFormatter {
 			foreach ( $doc->author as $author ) {
 				$acronym = self::make_acronym( $author );
 
-				echo $acronym;
-
+				
 				if ( $author['given'] == $main_author_first_name && $author['family'] == $main_author_last_name ) {
 					$html .= '<span class="collab-mendeley-author">' . $author['given'] . ' ' . $author['family'] . '</span>, ';
 					$trovato = true;
@@ -138,14 +137,15 @@ class DocumentFormatter {
 	}
 
 	private static function make_acronym( $text ) {
+		/*
 		$words   = explode( " ", $text );
 		$acronym = "";
 
 		foreach ( $words as $w ) {
 			$acronym .= $w[0];
-		}
+		}*/
 
-		return $acronym;
+		return $text['family']." ".substr($text['given'],0,1);
 	}
 
 	
