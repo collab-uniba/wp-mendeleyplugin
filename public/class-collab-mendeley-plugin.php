@@ -310,6 +310,7 @@ class CollabMendeleyPlugin {
 
 
 	public function authored_publications( $atts, $content = null ) {
+		
 		$titletag   = $atts['titletag'];
 		$sectiontag = $atts['sectiontag'];
 		if ( isset( $titletag ) ) {

@@ -122,12 +122,13 @@ class MendeleyApi {
 		return $response;
 	}
 
-	public function get_authored_publications($id_profile) {
+	public function get_authored_publications(/*$id_profile*/) {
 
 		$url = self::API_ENDPOINT . 'documents';
 
-		// $response = $this->client->fetch( $url );
-		$response = $this->client->fetch( $url, array('id_profile'=> $id_profile), 'GET' );
+		$response = $this->client->fetch( $url );
+		// rimosso profile-id in quanto dobbiamo prendere tutti i documenti
+		// $response = $this->client->fetch( $url, array('id_profile'=> $id_profile), 'GET' );
 		if ( $response['code'] != 200 ) {
 			return null;
 		}

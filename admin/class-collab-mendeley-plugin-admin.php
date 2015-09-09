@@ -386,6 +386,7 @@ class CollabMendeleyPluginAdmin {
 			admin_url( 'options-general.php?page=' . $this->plugin_slug )
 		);
 		$client->set_client_access_token( $token );
+
 		$publications = $client->get_authored_publications();
 		$author_info  = $client->get_account_info();
 		// set the cache

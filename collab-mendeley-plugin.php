@@ -98,8 +98,8 @@ if($_POST['action']=='mendeley_download'){
 	$auth = curl_exec($curl);
 	$donwload = curl_getinfo($curl);
 	
-	
 	header('Location: '.$donwload['redirect_url']);
+	
     die;
 	
 }
