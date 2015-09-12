@@ -13,7 +13,7 @@
  * Plugin Name:       Collab Mendeley Plugin
  * Plugin URI:        https://github.com/collab-uniba/wp-mendeleyplugin
  * Description:       Collab Mendeley Plugin
- * Version:           2.0.0
+ * Version:           3.0.0
  * Author:            Davide Parisi, Nicola Musicco, Gabriele Cianciaruso
  * Author URI:        https://github.com/collab-uniba/wp-mendeleyplugin
  * Text Domain:       collab-mendeley-plugin-locale

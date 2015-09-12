@@ -71,15 +71,12 @@ class DocumentFormatter {
 
 	public static function custom_format( $documents, $main_author ) {
 		$formatted                = '<ol class="collab-mendeley-authored-list">';
-		$main_author_first_name   = $main_author[0];
-		$main_author_last_name    = $main_author[1];
+		$main_author_first_name   = $main_author['first_name'];
+		$main_author_last_name    = $main_author['last_name'];
 		
 		$count = 0;
 		$trovato = false;
 		foreach ( $documents as $doc ) {
-			//print_r($doc->author);
-			//$profile_id             = $doc->profile_id;
-			$trovato = false;
 			$title = $doc->title;
 			$html  = '<li>';
 			
@@ -89,19 +86,18 @@ class DocumentFormatter {
 			foreach ( $doc->author as $author ) {
 				$acronym = self::make_acronym( $author );
 
-				
+				// Verifica se nella pubblicazione è presente il mio nome
 				if ( $author['given'] == $main_author_first_name && $author['family'] == $main_author_last_name ) {
 					$html .= '<span class="collab-mendeley-author">' . $author['given'] . ' ' . $author['family'] . '</span>, ';
-					$trovato = true;
+					//$trovato = true;
 				} else {
 					$html .= $author['given'] . ' ' . $author['family'] . ', ';
 				}
 			}
-			if(!$trovato) continue;
 			
 			$html .= '<form method="post" name="down'.$count.'" target="_blank">';
 			$html .= '<input type="hidden" name="action" value="mendeley_download"/>';
-			$html .= '<input type="hidden" name="idfile" value="'.$doc->file_info[0]['id'].'"/>';
+			$html .= '<input type="hidden" name="idfile" value="'.$doc->file_info['id'].'"/>';
 			$html .= '<a class="collab-mendeley-title" href="javascript:document.down'.$count.'.submit();" rel="nofollow">' . $doc->title . '</a>, ';
 			$html .= '</form>';
 			$count++;

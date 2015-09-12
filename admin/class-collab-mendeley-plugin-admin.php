@@ -99,7 +99,7 @@ class CollabMendeleyPluginAdmin {
 		$plugin             = CollabMendeleyPlugin::get_instance();
 		$this->plugin_slug  = $plugin->get_plugin_slug();
 		$this->callback_url = admin_url( 'options-general.php?page=' . $this->plugin_slug );
-		$options      		= $this->get_options();
+		$options      		= $this->get_my_options();
 		$actoken            = $options['access-token'];
 		
 		if ( !empty( $actoken ) ) {
@@ -229,13 +229,13 @@ class CollabMendeleyPluginAdmin {
 	}
 
 	public function client_id_input_callback( $args ) {
-		$options = $this->get_options();
+		$options = $this->get_my_options();
 		$html    = '<input type="text" id="client_id" name="' . $this->plugin_slug . '[client_id]" value="' . $options['client_id'] . '" />';
 		echo $html;
 	}
 
 	public function client_secret_input_callback( $args ) {
-		$options = $this->get_options();
+		$options = $this->get_my_options();
 		$html    = '<input type="password" id="client_secret" name="' . $this->plugin_slug . '[client_secret]" value="' . $options['client_secret'] . '" />';
 		echo $html;
 	}
@@ -350,7 +350,7 @@ class CollabMendeleyPluginAdmin {
 	}
 
 	public function request_access_token() {
-		$options = $this->get_options();
+		$options = $this->get_my_options();
 		if ( $options['client_id'] === '' || $options['client_secret'] === '' ) {
 			//@todo: do something if keys are void, this can happen when someone clicks on "request access token" before id and secret are set
 			return;
@@ -363,14 +363,19 @@ class CollabMendeleyPluginAdmin {
 	}
 
 	public function import_authored_publications() {
+		// forzo creazione di valori vuoti, per aggiornarli sotto. 
+		// Attenzione: un add_option di voci esistenti non aggiorna e nn da errore!!!
+		add_option( $this->plugin_slug . '-account-info', array() );
+		add_option( $this->plugin_slug . '-cache', array() );
+
 		$url     = $_SERVER['HTTP_REFERER'];
-		$options = $this->get_options();
+		$options = $this->get_my_options();
 		if ( ! isset( $options ) || false == $options ) { // if cannot get options
 			return; // exit and do nothing
 		}
 		if ( time() > $options['expire_time'] ) {
 			$this->refresh_token();
-			$options = $this->get_options();
+			$options = $this->get_my_options();
 		}
 		$token_data_array = $options['access_token']['result'];
 		if ( ! isset( $token_data_array ) ) {
@@ -387,15 +392,16 @@ class CollabMendeleyPluginAdmin {
 		);
 		$client->set_client_access_token( $token );
 
-		$publications = $client->get_authored_publications();
 		$author_info  = $client->get_account_info();
+		$publications = $client->get_authored_publications($author_info);
+		
 		// set the cache
-		//$options['cache'] = true;  // DISABILITATO...vedi 5 righe sotto
-		add_option( $this->plugin_slug . '-account-info', $author_info );
+		$options['cache'] = true;  // DISABILITATO...vedi 5 righe sotto
+		update_option( $this->plugin_slug . '-account-info', $author_info );
 		$dt                     = new DateTime();
 		$options['last-import'] = $dt->format( 'd-m-Y H:i:s' );
-		$this->update_options( $options );
-		add_option( $this->plugin_slug . '-cache', $publications );
+		$this->update_my_options( $options );
+		update_option( $this->plugin_slug . '-cache', $publications );
 
 		wp_redirect( $url );
 		exit;
@@ -404,7 +410,7 @@ class CollabMendeleyPluginAdmin {
 
 	public function store_access_token( $auth_code ) {
 
-		$options      = $this->get_options();
+		$options      = $this->get_my_options();
 		$client       = $this->set_up_client( $options );
 		$access_token = $client->get_access_token( $auth_code );
 		//print_r($client);
@@ -415,7 +421,7 @@ class CollabMendeleyPluginAdmin {
 			$expire_time_humanized   = date( 'd-n-Y H:i:s', $expire_time );
 			$options['expire_time']  = $expire_time;
 			$options['et_humanized'] = $expire_time_humanized;
-			$this->update_options( $options );
+			$this->update_my_options( $options );
 		}/*else{
 			echo "Debug info:<code>";
 			print_r($access_token);	
@@ -425,7 +431,7 @@ class CollabMendeleyPluginAdmin {
 	}
 
 	public function check_access_token() {
-		$access_token_data = $this->get_options();
+		$access_token_data = $this->get_my_options();
 		
 		if ( time() > $access_token_data['expire_time'] ) {
 			$this->refresh_token();
@@ -433,7 +439,7 @@ class CollabMendeleyPluginAdmin {
 	}
 
 	public function refresh_token() {
-		$options       = $this->get_options();
+		$options       = $this->get_my_options();
 		$client        = $this->set_up_client( $options );
 		$result        = $options['access_token']['result'];
 		$refresh_token = $result['refresh_token'];
@@ -446,7 +452,7 @@ class CollabMendeleyPluginAdmin {
 		$expire_time_humanized   = date( 'd-n-Y H:i:s', $expire_time );
 		$options['expire_time']  = $expire_time;
 		$options['et_humanized'] = $expire_time_humanized;
-		$this->update_options( $options );
+		$this->update_my_options( $options );
 	}
 
 	// register tinyMCE custom button(s)
@@ -491,7 +497,7 @@ class CollabMendeleyPluginAdmin {
 	 *
 	 * @return null
 	 */
-	public function get_options() {
+	public function get_my_options() {
 		$opts = get_option( $this->plugin_slug );
 
 		return $opts;
@@ -502,7 +508,7 @@ class CollabMendeleyPluginAdmin {
 	 *
 	 * @param $options
 	 */
-	private function update_options( $options ) {
+	private function update_my_options( $options ) {
 		update_option( $this->plugin_slug, $options );
 
 	}
