@@ -6,7 +6,7 @@
  * The User Interface to the end user.
  *
  * @package   CollabMendeleyPlugin
- * @author    Davide Parisi <davideparisi@gmail.com>
+ * @author    Davide Parisi <davideparisi@gmail.com>, Gabriele Cianciaruso <infogabry@gmail.com>
  * @license   GPL-2.0+
  * @link      http://example.com
  * @copyright 2014 --

@@ -3,7 +3,7 @@
  * Collab Mendeley Plugin
  *
  * @package   CollabMendeleyPlugin
- * @author    Davide Parisi <davideparisi@gmail.com>
+ * @author    Davide Parisi <davideparisi@gmail.com>, Gabriele Cianciaruso <infogabry@gmail.com>
  * @license   GPL-2.0+
  * @link      http://example.com
  * @copyright 2014 --
@@ -17,7 +17,7 @@
  * functionality, then refer to `class-collab-mendeley-plugin-admin.php`
  *
  * @package CollabMendeleyPlugin
- * @author  Davide Parisi <davideparisi@gmail.com>
+ * @author  Davide Parisi <davideparisi@gmail.com>, Gabriele Cianciaruso <infogabry@gmail.com>
  *
  */
 
@@ -70,7 +70,7 @@ class CollabMendeleyPlugin {
 		add_action( 'init', array( $this, 'load_plugin_textdomain' ) );
 		add_action( 'init', array( $this, 'register_shortcode' ) );
 
-		add_action( 'mendeley_download', array( $this, 'download_file' ) );
+		//add_action( 'mendeley_download', array( $this, 'download_file' ) );
 
 		// Activate plugin when new blog is added
 		add_action( 'wpmu_new_blog', array( $this, 'activate_new_site' ) );
@@ -81,20 +81,7 @@ class CollabMendeleyPlugin {
 
 	}
 
-	public function download_file(){
-		/*
-		$curl = curl_init("https://api.mendeley.com:443/files/".$idfile);
-  
-		curl_setopt( $curl, CURLOPT_RETURNTRANSFER, true);
-		curl_setopt($curl, CURLOPT_VERBOSE, true);
-		curl_setopt($curl, CURLOPT_HEADER, true);
-		curl_setopt($curl, CURLOPT_HTTPHEADER, array("Authorization: Bearer MSwxNDMyNTkyMTIxNTgxLDMxNzQwODg1MSwxODQxLGFsbCwsb212eTM1ckZLTThKR3BDSG9jQnVKd1VEUjFv"));
-		$auth = curl_exec($curl);
-		echo $auth;
-		*/
-		echo "TEST ACTION";
-	}
-
+	
 	/**
 	 * Return the plugin slug.
 	 *
@@ -323,6 +310,7 @@ class CollabMendeleyPlugin {
 
 
 	public function authored_publications( $atts, $content = null ) {
+		
 		$titletag   = $atts['titletag'];
 		$sectiontag = $atts['sectiontag'];
 		if ( isset( $titletag ) ) {
@@ -331,10 +319,8 @@ class CollabMendeleyPlugin {
 		}
 		$publications = $this->get_publications();
 		$main_author  = $this->get_account_info();
-		//print_r($main_author); echo $main_author;
 
-		$author       = explode( " ", ucwords( $main_author['display_name'] ) );
-
+		
 		if ( ! isset( $publications['data'] ) || $publications == false ) {
 			$publications = $this->get_remote_publications();
 		}
@@ -351,7 +337,7 @@ class CollabMendeleyPlugin {
 				return strcmp( $b->year, $a->year );
 			} );
 
-			$formatted_alt = DocumentFormatter::custom_format( $documents, $author );
+			$formatted_alt = DocumentFormatter::custom_format( $documents, $main_author );
 			//$formatted_alt = DocumentFormatter::format( $documents, null, null, $author );
 
 
@@ -396,17 +382,20 @@ class CollabMendeleyPlugin {
 		$info = get_option($this->plugin_slug . '-account-info');
 		
 		return $info;
+
+		/* $info = get_option();
+		return $info;	*/
 	}
 
 	private function get_access_token() {
-		$options = $this->get_options();
+		$options = $this->get_my_options();
 
 		return $options['access_token']['result']['access_token'];
 	}
 
 	private function get_publications() {
 		// get the stored options
-		$options = $this->get_options();
+		$options = $this->get_my_options();
 
 		
 		// if publications in cache
@@ -422,7 +411,6 @@ class CollabMendeleyPlugin {
 	}
 
 	private function get_cached_publications() {
-		//$publications = get_option( $this->plugin_slug . '-cache' );
 		$publications = get_option( $this->plugin_slug . '-cache' );
 
 		return $publications;
@@ -430,7 +418,7 @@ class CollabMendeleyPlugin {
 
 	private function get_remote_publications() {
  
-		$options = $this->get_options();
+		$options = $this->get_my_options();
 		if ( false == $options ) { // if cannot get options
 			return; // exit and do nothing
 		}
@@ -452,7 +440,7 @@ class CollabMendeleyPlugin {
 		if ( time() > $options['expire_time'] ) {
 			$response                = $client->refresh_access_token( $token_data_array['refresh_token'] );
 			$options['access_token'] = $response;
-			$this->update_options( $options );
+			$this->update_my_options( $options );
 
 			if ( $response['code'] != 200 ) { // if there is a problem with the response
 				return $response['message']; // return a void string and do no harm...
@@ -464,12 +452,15 @@ class CollabMendeleyPlugin {
 
 
 		$client->set_client_access_token( $token );
-		$publications = $client->get_authored_publications($client->get_account_info()['id']);
+		//$acc_info = $client->get_account_info();
+		$acc_info = $this->get_account_info();
+		$publications = $client->get_authored_publications($acc_info['id']);
 		// set the cache
-		//print_r($publications);
-		$options['account-info'] = $client->get_account_info();
+		//print_r($client->get_account_info());
+		//$options['account-info'] = $acc_info;  Rimosso in quanto presente in sezione esterna
 		$options['cache']        = false;  // true, forzato a false
-		$this->update_options( $options );
+		
+		$this->update_my_options( $options );
 		add_option( $this->plugin_slug . '-cache', $publications );
 
 		return $publications;
@@ -481,14 +472,14 @@ class CollabMendeleyPlugin {
 	 *
 	 *---------------------------------------------------------------------------*/
 
-	private function get_options() {
+	private function get_my_options() {
 
 		$opts = get_option( $this->plugin_slug );
 
 		return $opts;
 	}
 
-	private function update_options( $options ) {
+	private function update_my_options( $options ) {
 
 		update_option( $this->plugin_slug, $options );
 	}

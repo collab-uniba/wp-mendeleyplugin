@@ -1,7 +1,7 @@
 <?php
 /**
  * Created by PhpStorm.
- * User: davide
+ * User: Gabriele Cianciaruso <infogabry@gmail.com>
  * Date: 08/07/14
  * Time: 14:20
  */
@@ -122,12 +122,13 @@ class MendeleyApi {
 		return $response;
 	}
 
-	public function get_authored_publications($id_profile) {
-
+	public function get_authored_publications() {
+		
+		
 		$url = self::API_ENDPOINT . 'documents';
+		$response = $this->client->fetch( $url, array('authored'=> 'true'), 'GET' );
+	
 
-		// $response = $this->client->fetch( $url );
-		$response = $this->client->fetch( $url, array('id_profile'=> $id_profile), 'GET' );
 		if ( $response['code'] != 200 ) {
 			return null;
 		}
